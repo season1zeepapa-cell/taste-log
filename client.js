@@ -576,15 +576,15 @@
     body.style.background = gradient;
   };
 
-  // 카테고리별 버튼 색상 (배경 그라데이션과 매칭)
+  // 카테고리별 버튼 색상 (사이트 그라데이션과 동일)
   const categoryButtonColors = {
-    '전체': 'bg-amber-300',
-    '한식': 'bg-red-300',
-    '양식': 'bg-blue-300',
-    '일식': 'bg-pink-300',
-    '중식': 'bg-yellow-300',
-    '카페': 'bg-orange-300',
-    '분식': 'bg-orange-400',
+    '전체': '#fcd34d',  // amber
+    '한식': '#f87171',  // red
+    '양식': '#60a5fa',  // blue
+    '일식': '#f472b6',  // pink
+    '중식': '#facc15',  // yellow
+    '카페': '#fb923c',  // orange
+    '분식': '#f97316',  // orange darker
   };
 
   // ================================
@@ -596,19 +596,19 @@
     buttons.forEach(btn => {
       btn.addEventListener('click', async () => {
         const category = btn.dataset.category;
-        const btnColor = categoryButtonColors[category] || 'bg-amber-300';
+        const btnColor = categoryButtonColors[category] || categoryButtonColors['전체'];
 
-        // 1. 모든 버튼 기본 스타일로 리셋
+        // 1. 모든 버튼 흰색으로 리셋
         buttons.forEach(b => {
-          // 이전 색상 클래스 제거
-          Object.values(categoryButtonColors).forEach(color => b.classList.remove(color));
-          b.classList.remove('text-slate-900', 'shadow-md', 'font-bold');
-          b.classList.add('bg-white', 'border-2', 'border-slate-300', 'text-slate-700', 'font-semibold');
+          b.style.backgroundColor = 'white';
+          b.classList.remove('shadow-md', 'font-bold');
+          b.classList.add('border-2', 'border-slate-300', 'text-slate-700', 'font-semibold');
         });
 
         // 2. 선택된 버튼에 카테고리 색상 적용
-        btn.classList.remove('bg-white', 'border-2', 'border-slate-300', 'text-slate-700', 'font-semibold');
-        btn.classList.add(btnColor, 'text-slate-900', 'shadow-md', 'font-bold');
+        btn.style.backgroundColor = btnColor;
+        btn.classList.remove('border-2', 'border-slate-300', 'text-slate-700', 'font-semibold');
+        btn.classList.add('text-slate-900', 'shadow-md', 'font-bold');
 
         // 2. 선택된 카테고리 저장
         state.selectedCategory = btn.dataset.category;
