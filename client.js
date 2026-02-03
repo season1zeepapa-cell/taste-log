@@ -415,7 +415,8 @@
   const renderHomePopular = (items) => {
     const section = findSectionByTitle('지금 주변 인기 맛집');
     if (!section) return;
-    const container = qs('.mt-5.flex', section);
+    // mt-3 또는 mt-5 클래스를 가진 flex 컨테이너 찾기
+    const container = qs('.mt-3.flex.gap-4', section) || qs('.mt-5.flex', section);
     if (!container) return;
     container.innerHTML = '';
 
@@ -431,7 +432,8 @@
   const appendPlaceCards = (items) => {
     const section = findSectionByTitle('지금 주변 인기 맛집');
     if (!section) return;
-    const container = qs('.mt-5.flex', section);
+    // mt-3 또는 mt-5 클래스를 가진 flex 컨테이너 찾기
+    const container = qs('.mt-3.flex.gap-4', section) || qs('.mt-5.flex', section);
     if (!container) return;
 
     items.forEach((place) => {
