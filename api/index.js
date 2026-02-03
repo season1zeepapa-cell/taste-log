@@ -55,9 +55,16 @@ async function ensureSchema() {
         address TEXT,
         phone TEXT,
         distance_m INTEGER,
+        area TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+
+    // 기존 테이블에 area 컬럼이 없으면 추가 (마이그레이션)
+    await client.query(`
+      ALTER TABLE visits ADD COLUMN IF NOT EXISTS area TEXT;
+    `);
+
     isInitialized = true;
     console.log('✅ 데이터베이스 테이블이 준비되었습니다!');
   } finally {
@@ -90,6 +97,13 @@ const buildWhere = (params) => {
   if (params.q) {
     values.push(`%${params.q}%`);
     clauses.push(`(place_name ILIKE $${values.length} OR menu ILIKE $${values.length} OR notes ILIKE $${values.length})`);
+  }
+
+  // 지역(area) 필터 - DB의 area 컬럼으로 정확히 검색
+  // 예: area=성수동 → area 컬럼이 '성수동'인 기록만 조회
+  if (params.area) {
+    values.push(params.area);
+    clauses.push(`area = $${values.length}`);
   }
 
   if (params.from) {
@@ -231,6 +245,7 @@ app.post('/api/visits', async (req, res) => {
     address,
     phone,
     distance_m,
+    area,
   } = req.body || {};
 
   if (!place_name) {
@@ -256,9 +271,10 @@ app.post('/api/visits', async (req, res) => {
         notes,
         address,
         phone,
-        distance_m
+        distance_m,
+        area
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
       ) RETURNING *;`,
       [
         place_name,
@@ -276,6 +292,7 @@ app.post('/api/visits', async (req, res) => {
         address || null,
         phone || null,
         distance_m || null,
+        area || null,
       ]
     );
     res.status(201).json(result.rows[0]);
@@ -311,6 +328,7 @@ app.put('/api/visits/:id', async (req, res) => {
     'address',
     'phone',
     'distance_m',
+    'area',
   ];
 
   const updates = [];

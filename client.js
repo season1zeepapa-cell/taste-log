@@ -352,6 +352,8 @@
       setHeaderLocation(locationText, `${condition} · ${temp}°C · 체감 쾌적`);
     } catch (error) {
       console.log('📍 위치 권한 거부 또는 오류, 기본 위치(성수동) 사용');
+      // 기본 위치를 명시적으로 설정
+      state.currentArea = '성수동';
       setHeaderLocation(defaultLocation, '맑음 · 12°C · 미세먼지 좋음');
     }
   };
@@ -633,8 +635,18 @@
           console.warn('카테고리 검색 실패:', error);
         }
 
-        // 6. 타임라인(내 기록)도 카테고리 필터링
-        filterTimelineByCategory(state.selectedCategory);
+        // 6. 타임라인(내 기록)도 카테고리 + 현재 위치로 다시 로드
+        try {
+          const area = state.currentArea;
+          const categoryParam = state.selectedCategory === '전체' ? '' : `&category=${encodeURIComponent(state.selectedCategory)}`;
+          const timelineData = await api(`/api/visits?limit=20&area=${encodeURIComponent(area)}${categoryParam}`);
+          state.visits = timelineData.items || [];
+          renderTimeline(state.visits);
+        } catch (error) {
+          console.warn('타임라인 필터링 실패:', error);
+          // 실패 시 DOM 기반 필터링으로 폴백
+          filterTimelineByCategory(state.selectedCategory);
+        }
       });
     });
   };
@@ -820,6 +832,7 @@
       phone: place?.phone || null,
       distance_m: place?.distance_m || null,
       tags: place?.tags || null,
+      area: state.currentArea,  // 현재 지역 저장
     };
 
     try {
@@ -884,9 +897,22 @@
   // 흐름: API 호출 → 데이터 가공 → 화면 렌더링
   const refreshData = async () => {
     try {
-      // 1단계: 타임라인 데이터 로드
-      const timeline = await api('/api/visits?limit=8');
+      // 1단계: 타임라인 데이터 로드 (현재 위치 기반 필터링)
+      // area 파라미터로 현재 위치(동네명)를 전달하여
+      // DB의 area 컬럼과 정확히 일치하는 기록만 조회합니다
+      // 예: state.currentArea='성수동' → WHERE area='성수동'
+      const area = state.currentArea;
+      console.log('📍 내 맛집 로드 - 현재 지역으로 DB 조회:', area);
+
+      // 현재 지역으로만 검색 (DB area 컬럼 기준)
+      // 해당 지역에 데이터가 없으면 빈 상태로 표시
+      const timeline = await api(`/api/visits?limit=20&area=${encodeURIComponent(area)}`);
       state.visits = timeline.items || [];
+
+      if (state.visits.length === 0) {
+        console.log('📍 현재 지역에 저장된 맛집 기록이 없습니다:', area);
+      }
+
       renderTimeline(state.visits);
 
       // 2단계: 네이버 API로 주변 맛집 5개 검색
