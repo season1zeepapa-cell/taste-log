@@ -363,13 +363,7 @@
     const card = document.createElement('article');
     card.className = 'min-w-[220px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4';
 
-    // 카테고리별 이미지 추가
-    const img = document.createElement('img');
-    img.src = getCategoryImage(place.category);
-    img.alt = place.name;
-    img.className = 'w-full h-24 object-cover rounded-xl mb-3';
-    img.onerror = () => { img.style.display = 'none'; };
-
+    // 헤더: 장소명, 카테고리, 별점
     const header = document.createElement('div');
     header.className = 'flex items-start justify-between';
 
@@ -385,28 +379,32 @@
 
     const rating = document.createElement('span');
     rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white';
-    rating.textContent = Number(place.rating || 0).toFixed(1);
+    rating.textContent = Number(place.rating || place.avg_rating || 0).toFixed(1);
 
     header.append(titleWrap, rating);
 
-    const menu = document.createElement('p');
-    menu.className = 'mt-3 text-sm text-slate-600';
-    menu.textContent = place.highlight || '네이버 추천 맛집';
+    // 주소 표시
+    const addressText = document.createElement('p');
+    addressText.className = 'mt-3 text-sm text-slate-600';
+    addressText.textContent = place.address || place.roadAddress || '';
 
+    // 푸터: 방문횟수 + 바로 기록 버튼
     const footer = document.createElement('div');
     footer.className = 'mt-4 flex items-center justify-between';
 
-    const sub = document.createElement('span');
-    sub.className = 'text-xs text-amber-700';
-    sub.textContent = place.note || '바로 방문하기 좋음';
+    const visitCount = document.createElement('span');
+    visitCount.className = 'text-xs text-amber-700';
+    // 방문횟수 표시 (visit_count가 있으면 표시, 없으면 기본 메시지)
+    const count = place.visit_count || 0;
+    visitCount.textContent = count > 0 ? `방문 ${count}회` : '새로운 맛집';
 
     const action = document.createElement('button');
     action.className = 'rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800';
     action.textContent = '바로 기록';
     action.addEventListener('click', () => handleQuickRecord(place));
 
-    footer.append(sub, action);
-    card.append(img, header, menu, footer);
+    footer.append(visitCount, action);
+    card.append(header, addressText, footer);
 
     return card;
   };
