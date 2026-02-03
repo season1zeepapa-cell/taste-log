@@ -112,35 +112,65 @@
   // ================================
   // 설명: window.prompt 대신 예쁜 모달 창을 사용합니다
   let modalResolve = null;  // 모달 결과를 반환할 Promise resolve 함수
+  let editingVisitId = null;  // null이면 새 기록, 숫자면 수정 모드
 
   // 모달 열기 함수
   // place: 미리 선택된 장소 정보 (선택사항)
-  const openRecordModal = (place = null) => {
+  // existingVisit: 수정할 기존 방문 기록 (선택사항)
+  const openRecordModal = (place = null, existingVisit = null) => {
     return new Promise((resolve) => {
       modalResolve = resolve;
+      editingVisitId = existingVisit?.id || null;  // 수정 모드 상태 저장
 
       // 모달 요소 가져오기
       const modal = qs('#record-modal');
+      const modalTitle = qs('#modal-title');
       const nameInput = qs('#modal-place-name');
       const ratingInput = qs('#modal-rating');
       const noteInput = qs('#modal-note');
       const ratingDisplay = qs('#rating-display');
       const starBtns = qsa('.star-btn');
+      const confirmBtn = qs('#modal-confirm');
+      const deleteBtn = qs('#modal-delete');
+
+      // 모달 제목 및 버튼 텍스트 변경
+      if (modalTitle) {
+        modalTitle.textContent = existingVisit ? '리뷰 수정하기' : '맛집 기록하기';
+      }
+      if (confirmBtn) {
+        confirmBtn.textContent = existingVisit ? '수정 저장' : '기록 저장';
+      }
+
+      // 삭제 버튼 표시/숨김 (수정 모드에서만 표시)
+      if (deleteBtn) {
+        deleteBtn.classList.toggle('hidden', !existingVisit);
+      }
 
       // 입력 필드 초기화
-      nameInput.value = place?.name || '';
-      ratingInput.value = '4.5';
-      noteInput.value = '';
-      ratingDisplay.textContent = '4.5';
-
-      // 별점 표시 업데이트
-      updateStars(4.5, starBtns);
+      if (existingVisit) {
+        // 수정 모드: 기존 데이터 로드
+        nameInput.value = place?.place_name || '';
+        nameInput.disabled = true;  // 장소명 변경 불가
+        const rating = existingVisit.rating_overall || 4.5;
+        ratingInput.value = rating;
+        noteInput.value = existingVisit.notes || '';
+        ratingDisplay.textContent = Number(rating).toFixed(1);
+        updateStars(Math.floor(rating), starBtns);
+      } else {
+        // 새 기록 모드
+        nameInput.value = place?.name || '';
+        nameInput.disabled = false;
+        ratingInput.value = '4.5';
+        noteInput.value = '';
+        ratingDisplay.textContent = '4.5';
+        updateStars(4.5, starBtns);
+      }
 
       // 모달 표시 (hidden 클래스 제거)
       modal.classList.remove('hidden');
 
-      // 첫 번째 입력 필드에 포커스
-      if (!place?.name) {
+      // 포커스 설정
+      if (!existingVisit && !place?.name) {
         nameInput.focus();
       } else {
         ratingInput.focus();
@@ -183,6 +213,7 @@
     const closeBtn = qs('#modal-close');
     const cancelBtn = qs('#modal-cancel');
     const confirmBtn = qs('#modal-confirm');
+    const deleteBtn = qs('#modal-delete');  // 삭제 버튼
     const nameInput = qs('#modal-place-name');
     const ratingInput = qs('#modal-rating');
     const noteInput = qs('#modal-note');
@@ -212,6 +243,23 @@
       }
 
       closeRecordModal({ name, rating, note });
+    });
+
+    // 모달 내 삭제 버튼 클릭 시 (수정 모드에서만 표시)
+    deleteBtn?.addEventListener('click', async () => {
+      if (!editingVisitId) return;  // 수정 모드가 아니면 무시
+
+      // 삭제 확인
+      if (!window.confirm('이 리뷰를 삭제하시겠습니까?')) return;
+
+      try {
+        await api(`/api/visits/${editingVisitId}`, { method: 'DELETE' });
+        closeRecordModal(null);  // 모달 닫기
+        await refreshData();     // 화면 새로고침
+      } catch (error) {
+        console.warn('삭제 실패:', error);
+        window.alert('삭제에 실패했습니다.');
+      }
     });
 
     // 별 클릭 시 별점 변경
@@ -688,6 +736,7 @@
         };
       }
       grouped[key].visits.push({
+        id: item.id,  // 수정/삭제에 필요한 ID 저장
         visit_date: item.visit_date,
         notes: item.notes,
         rating_overall: item.rating_overall,
@@ -754,7 +803,13 @@
 
       place.visits.forEach((visit, idx) => {
         const visitItem = document.createElement('div');
-        visitItem.className = 'text-sm';
+        // 클릭 가능 스타일 + hover 효과 추가
+        visitItem.className = 'text-sm cursor-pointer hover:bg-amber-50 rounded-lg p-2 -mx-2 transition-colors';
+
+        // 전체 영역 클릭 시 수정 모달 열기
+        visitItem.addEventListener('click', () => {
+          handleEditVisit(visit.id, place);
+        });
 
         const dateRow = document.createElement('div');
         dateRow.className = 'flex items-center gap-2 text-slate-500';
@@ -842,6 +897,60 @@
     } catch (error) {
       console.warn('기록 저장 실패', error);
       window.alert('기록 저장에 실패했습니다.');
+    }
+  };
+
+  // ================================
+  // 리뷰 수정 핸들러
+  // ================================
+  // 설명: 타임라인에서 ✏️ 버튼 클릭 시 호출됩니다
+  // 흐름: 기존 데이터 조회 → 모달 열기 → 사용자 수정 → PUT API 호출
+  const handleEditVisit = async (visitId, place) => {
+    try {
+      // 1단계: 기존 방문 기록 조회
+      const visit = await api(`/api/visits/${visitId}`);
+
+      // 2단계: 모달 열기 (수정 모드)
+      const result = await openRecordModal(place, visit);
+
+      // 3단계: 취소 시 종료
+      if (!result) return;
+
+      // 4단계: PUT API 호출 (별점과 한줄평만 수정)
+      await api(`/api/visits/${visitId}`, {
+        method: 'PUT',
+        body: {
+          rating_overall: result.rating,
+          notes: result.note || null,
+        }
+      });
+
+      // 5단계: 화면 새로고침
+      await refreshData();
+    } catch (error) {
+      console.warn('수정 실패:', error);
+      window.alert('수정에 실패했습니다.');
+    }
+  };
+
+  // ================================
+  // 리뷰 삭제 핸들러
+  // ================================
+  // 설명: 타임라인에서 🗑️ 버튼 클릭 시 호출됩니다
+  // 흐름: 확인 대화상자 → DELETE API 호출 → 화면 새로고침
+  const handleDeleteVisit = async (visitId) => {
+    // 1단계: 삭제 확인
+    if (!window.confirm('이 리뷰를 삭제하시겠습니까?')) return;
+
+    try {
+      // 2단계: DELETE API 호출
+      await api(`/api/visits/${visitId}`, { method: 'DELETE' });
+
+      // 3단계: 화면 새로고침
+      await refreshData();
+    } catch (error) {
+      console.warn('삭제 실패:', error);
+      window.alert('삭제에 실패했습니다.');
     }
   };
 

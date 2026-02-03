@@ -194,7 +194,7 @@
         <div class="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
           <!-- 모달 헤더 -->
           <div class="flex items-center justify-between">
-            <h3 class="text-xl font-bold">맛집 기록하기</h3>
+            <h3 id="modal-title" class="text-xl font-bold">맛집 기록하기</h3>
             <button id="modal-close" class="rounded-full p-2 hover:bg-slate-100">
               <span class="text-xl text-slate-400">✕</span>
             </button>
@@ -251,6 +251,13 @@
 
           <!-- 버튼 -->
           <div class="mt-6 flex gap-3">
+            <!-- 삭제 버튼 (수정 모드에서만 표시) -->
+            <button
+              id="modal-delete"
+              class="hidden rounded-xl border border-red-200 bg-red-50 py-3 px-4 text-sm font-semibold text-red-600 hover:bg-red-100"
+            >
+              삭제
+            </button>
             <button
               id="modal-cancel"
               class="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
