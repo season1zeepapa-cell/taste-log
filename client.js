@@ -85,6 +85,19 @@
     return categoryImages['기타'];
   };
 
+  // image_data에서 사진 개수 계산하는 함수
+  // 설명: JSON 배열이면 배열 길이, 단일 문자열이면 1, 없으면 0을 반환합니다
+  const getPhotoCount = (imageData) => {
+    if (!imageData) return 0;
+    try {
+      const parsed = JSON.parse(imageData);
+      return Array.isArray(parsed) ? parsed.length : 1;
+    } catch {
+      // JSON 파싱 실패 = 단일 Base64 문자열 (기존 데이터)
+      return imageData ? 1 : 0;
+    }
+  };
+
   const state = {
     selectedPlace: null,
     exploreQuery: '',
@@ -943,6 +956,13 @@
         dateRow.innerHTML = `<span>📅</span><span>${formatDate(visit.visit_date)}</span>`;
         if (visit.rating_overall) {
           dateRow.innerHTML += `<span class="text-amber-500">⭐ ${Number(visit.rating_overall).toFixed(1)}</span>`;
+        }
+
+        // 사진 개수 표시 (📷 이모지 × 개수)
+        // 예: 사진 3장 → 📷📷📷
+        const photoCount = getPhotoCount(visit.image_data);
+        if (photoCount > 0) {
+          dateRow.innerHTML += `<span class="text-blue-500">${'📷'.repeat(photoCount)}</span>`;
         }
 
         visitItem.appendChild(dateRow);
