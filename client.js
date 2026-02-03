@@ -560,7 +560,7 @@
 
         console.log('🏷️ 카테고리 필터:', state.selectedCategory, '→', query);
 
-        // 4. 검색 및 렌더링
+        // 4. 주변 맛집 검색 및 렌더링
         try {
           const results = await searchPlaces(query);
           state.popularPlaces = results.slice(0, 5);
@@ -569,8 +569,28 @@
         } catch (error) {
           console.warn('카테고리 검색 실패:', error);
         }
+
+        // 5. 타임라인(내 기록)도 카테고리 필터링
+        filterTimelineByCategory(state.selectedCategory);
       });
     });
+  };
+
+  // 카테고리별 리본 색상
+  const getCategoryRibbonColor = (category) => {
+    const colors = {
+      '한식': 'bg-red-500',
+      '양식': 'bg-blue-500',
+      '일식': 'bg-pink-500',
+      '중식': 'bg-yellow-600',
+      '카페': 'bg-amber-600',
+      '분식': 'bg-orange-500',
+    };
+    // 카테고리에 키워드가 포함되어 있으면 해당 색상 반환
+    for (const [key, color] of Object.entries(colors)) {
+      if (category && category.includes(key)) return color;
+    }
+    return 'bg-slate-500';
   };
 
   const renderTimeline = (items) => {
@@ -581,30 +601,42 @@
 
     items.forEach((item) => {
       const card = document.createElement('article');
-      card.className = 'flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4';
+      card.className = 'relative flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 pl-6 overflow-hidden';
+      // 필터용 데이터 속성 추가
+      card.dataset.category = item.category || '기타';
 
-      const thumb = document.createElement('div');
-      thumb.className = 'h-20 w-20 rounded-xl bg-amber-100';
+      // 카테고리 리본 (왼쪽 상단)
+      const ribbon = document.createElement('div');
+      const ribbonColor = getCategoryRibbonColor(item.category);
+      ribbon.className = `absolute -left-1 top-4 ${ribbonColor} text-white text-xs px-3 py-1 rounded-r-full shadow-md`;
+      ribbon.textContent = item.category || '기타';
+
+      // 썸네일 (카테고리 이미지)
+      const thumb = document.createElement('img');
+      thumb.src = getCategoryImage(item.category);
+      thumb.alt = item.category || '기타';
+      thumb.className = 'h-20 w-20 rounded-xl object-cover flex-shrink-0';
+      thumb.onerror = () => { thumb.style.display = 'none'; };
 
       const body = document.createElement('div');
-      body.className = 'flex-1';
+      body.className = 'flex-1 min-w-0';
 
       const header = document.createElement('div');
       header.className = 'flex items-center justify-between';
 
       const title = document.createElement('h3');
-      title.className = 'font-semibold';
+      title.className = 'font-semibold truncate';
       title.textContent = item.place_name;
 
       const rating = document.createElement('span');
-      rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white';
+      rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white flex-shrink-0 ml-2';
       rating.textContent = Number(item.rating_overall || 0).toFixed(1);
 
       header.append(title, rating);
 
       const meta = document.createElement('p');
       meta.className = 'mt-1 text-xs text-slate-500';
-      meta.textContent = `${formatDate(item.visit_date)} · ${item.category || '기타'}`;
+      meta.textContent = `${formatDate(item.visit_date)}`;
 
       const tagsWrap = document.createElement('div');
       tagsWrap.className = 'mt-2 flex flex-wrap gap-2 text-xs';
@@ -616,8 +648,31 @@
       });
 
       body.append(header, meta, tagsWrap);
-      card.append(thumb, body);
+
+      // 리뷰 내용 추가 (notes가 있으면 표시)
+      if (item.notes) {
+        const review = document.createElement('p');
+        review.className = 'mt-2 text-sm text-slate-600 italic line-clamp-2';
+        review.textContent = `"${item.notes}"`;
+        body.appendChild(review);
+      }
+
+      card.append(ribbon, thumb, body);
       container.appendChild(card);
+    });
+  };
+
+  // 타임라인 카테고리 필터 함수
+  const filterTimelineByCategory = (category) => {
+    const section = findSectionByTitle('타임라인 & 지도 뷰');
+    if (!section) return;
+    const cards = section.querySelectorAll('[data-category]');
+    cards.forEach(card => {
+      if (category === '전체' || card.dataset.category.includes(category)) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
     });
   };
 
