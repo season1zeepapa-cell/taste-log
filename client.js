@@ -389,13 +389,9 @@
 
     header.append(titleWrap, rating);
 
-    // 네이버 지도 링크 (기존 "네이버 검색 결과" 문구 대체)
-    const mapLink = document.createElement('a');
-    mapLink.href = place.link || `https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + (place.address || ''))}`;
-    mapLink.target = '_blank';
-    mapLink.rel = 'noopener noreferrer';
-    mapLink.className = 'mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline';
-    mapLink.innerHTML = '📍 네이버 지도에서 보기';
+    const menu = document.createElement('p');
+    menu.className = 'mt-3 text-sm text-slate-600';
+    menu.textContent = place.highlight || '네이버 추천 맛집';
 
     const footer = document.createElement('div');
     footer.className = 'mt-4 flex items-center justify-between';
@@ -410,7 +406,7 @@
     action.addEventListener('click', () => handleQuickRecord(place));
 
     footer.append(sub, action);
-    card.append(img, header, mapLink, footer);
+    card.append(img, header, menu, footer);
 
     return card;
   };
