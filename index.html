@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>맛집 방문 기록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-amber-50 text-slate-900">
+    <div class="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-8">
+      <header class="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-white/80 p-6 shadow-sm">
+        <div>
+          <p class="text-sm font-semibold text-amber-700">현재 위치</p>
+          <h1 class="text-2xl font-bold tracking-tight">성수동 · 서울</h1>
+          <p class="text-sm text-slate-500">맑음 · 12°C · 미세먼지 좋음</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="rounded-full border border-amber-200 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">
+            나의 기록 +
+          </button>
+          <div class="flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+            네이버 API 연결됨
+          </div>
+        </div>
+      </header>
+
+      <section>
+        <div class="rounded-3xl bg-white p-6 shadow-sm">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-semibold text-amber-600">홈</p>
+              <h2 class="text-xl font-bold">지금 주변 인기 맛집</h2>
+            </div>
+            <button class="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-500">더보기</button>
+          </div>
+          <div class="mt-5 flex gap-4 overflow-x-auto pb-4">
+            <article class="min-w-[220px] rounded-2xl border border-slate-100 bg-amber-50 p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-semibold">성수 수제버거</h3>
+                  <p class="text-xs text-slate-500">양식 · 350m</p>
+                </div>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.8</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-600">대표 메뉴: 시그니처 버거</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-xs text-amber-700">대기 10분</span>
+                <button class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">바로 기록</button>
+              </div>
+            </article>
+            <article class="min-w-[220px] rounded-2xl border border-slate-100 bg-emerald-50 p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-semibold">카페 루프탑</h3>
+                  <p class="text-xs text-slate-500">카페 · 420m</p>
+                </div>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.6</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-600">대표 메뉴: 라떼 플라이트</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-xs text-emerald-700">창가 자리 인기</span>
+                <button class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">바로 기록</button>
+              </div>
+            </article>
+            <article class="min-w-[220px] rounded-2xl border border-slate-100 bg-rose-50 p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-semibold">성수 야키토리</h3>
+                  <p class="text-xs text-slate-500">일식 · 580m</p>
+                </div>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.7</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-600">대표 메뉴: 모듬 꼬치</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-xs text-rose-700">웨이팅 15분</span>
+                <button class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">바로 기록</button>
+              </div>
+            </article>
+            <article class="min-w-[220px] rounded-2xl border border-slate-100 bg-sky-50 p-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h3 class="font-semibold">강변 브런치</h3>
+                  <p class="text-xs text-slate-500">양식 · 650m</p>
+                </div>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.5</span>
+              </div>
+              <p class="mt-3 text-sm text-slate-600">대표 메뉴: 아보카도 토스트</p>
+              <div class="mt-4 flex items-center justify-between">
+                <span class="text-xs text-sky-700">반려동물 동반</span>
+                <button class="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800">바로 기록</button>
+              </div>
+            </article>
+          </div>
+          <div class="mt-4 grid gap-4 md:grid-cols-3">
+            <div class="rounded-2xl border border-slate-100 bg-white p-4">
+              <p class="text-xs font-semibold text-slate-500">이번 달 기록</p>
+              <p class="mt-2 text-2xl font-bold">12회</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white p-4">
+              <p class="text-xs font-semibold text-slate-500">평균 별점</p>
+              <p class="mt-2 text-2xl font-bold">4.4</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-white p-4">
+              <p class="text-xs font-semibold text-slate-500">새 태그</p>
+              <p class="mt-2 text-2xl font-bold">8개</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl bg-white p-6 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-semibold text-amber-600">내 기록</p>
+            <h2 class="text-xl font-bold">타임라인 & 지도 뷰</h2>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600">
+              <span>🔍</span>
+              <span>검색</span>
+            </div>
+            <div class="flex items-center gap-2 rounded-full bg-slate-100 p-1">
+              <button class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">타임라인</button>
+              <button class="rounded-full px-3 py-1 text-xs font-semibold text-slate-500">지도</button>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">카테고리: 전체</span>
+          <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">평점: 4.0+</span>
+          <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">태그: #데이트</span>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <article class="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div class="h-20 w-20 rounded-xl bg-amber-100"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">오후의 온도</h3>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.6</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">2026.01.28 · 카페</p>
+              <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full bg-white px-2 py-1">#작업</span>
+                <span class="rounded-full bg-white px-2 py-1">#디저트</span>
+              </div>
+            </div>
+          </article>
+          <article class="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div class="h-20 w-20 rounded-xl bg-rose-100"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">이태원 파스타 하우스</h3>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.4</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">2026.01.25 · 양식</p>
+              <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full bg-white px-2 py-1">#가족모임</span>
+                <span class="rounded-full bg-white px-2 py-1">#파스타</span>
+              </div>
+            </div>
+          </article>
+          <article class="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div class="h-20 w-20 rounded-xl bg-emerald-100"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">분식 연구소</h3>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.1</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">2026.01.23 · 분식</p>
+              <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full bg-white px-2 py-1">#혼밥</span>
+                <span class="rounded-full bg-white px-2 py-1">#분식</span>
+              </div>
+            </div>
+          </article>
+          <article class="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <div class="h-20 w-20 rounded-xl bg-sky-100"></div>
+            <div class="flex-1">
+              <div class="flex items-center justify-between">
+                <h3 class="font-semibold">도산 라운지</h3>
+                <span class="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">4.9</span>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">2026.01.20 · 바</p>
+              <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                <span class="rounded-full bg-white px-2 py-1">#야경</span>
+                <span class="rounded-full bg-white px-2 py-1">#칵테일</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================================ -->
+    <!-- 기록하기 모달 -->
+    <!-- ================================ -->
+    <!-- 설명: 맛집 방문 기록을 입력하는 팝업 창입니다 -->
+    <!-- hidden 클래스: 처음에는 숨겨져 있다가, JavaScript로 표시합니다 -->
+    <div id="record-modal" class="fixed inset-0 z-50 hidden">
+      <!-- 배경 오버레이 (반투명 검정) -->
+      <div id="modal-backdrop" class="absolute inset-0 bg-black/50"></div>
+
+      <!-- 모달 내용 -->
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+          <!-- 모달 헤더 -->
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-bold">맛집 기록하기</h3>
+            <button id="modal-close" class="rounded-full p-2 hover:bg-slate-100">
+              <span class="text-xl text-slate-400">✕</span>
+            </button>
+          </div>
+
+          <!-- 입력 폼 -->
+          <div class="mt-6 space-y-4">
+            <!-- 장소 이름 -->
+            <div>
+              <label class="text-sm font-semibold text-slate-700">장소 이름</label>
+              <input
+                id="modal-place-name"
+                type="text"
+                placeholder="방문한 장소를 입력하세요"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+              />
+            </div>
+
+            <!-- 별점 -->
+            <div>
+              <label class="text-sm font-semibold text-slate-700">별점</label>
+              <div class="mt-2 flex items-center gap-1">
+                <!-- 별 5개 (클릭하면 별점 선택) -->
+                <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400" data-rating="1">★</button>
+                <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400" data-rating="2">★</button>
+                <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400" data-rating="3">★</button>
+                <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400" data-rating="4">★</button>
+                <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400" data-rating="5">★</button>
+                <span id="rating-display" class="ml-3 text-lg font-semibold text-slate-700">0.0</span>
+              </div>
+              <!-- 숫자 직접 입력 (선택사항) -->
+              <input
+                id="modal-rating"
+                type="number"
+                min="0"
+                max="5"
+                step="0.5"
+                value="0"
+                class="mt-2 w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-amber-400"
+              />
+            </div>
+
+            <!-- 한줄평 -->
+            <div>
+              <label class="text-sm font-semibold text-slate-700">한줄평</label>
+              <textarea
+                id="modal-note"
+                placeholder="간단한 후기를 남겨주세요"
+                rows="2"
+                class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- 버튼 -->
+          <div class="mt-6 flex gap-3">
+            <button
+              id="modal-cancel"
+              class="flex-1 rounded-xl border border-slate-200 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              취소
+            </button>
+            <button
+              id="modal-confirm"
+              class="flex-1 rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              기록 저장
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="client.js"></script>
+  </body>
+</html>

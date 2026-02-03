@@ -1,0 +1,15 @@
+{
+  "name": "taste-log",
+  "version": "1.0.0",
+  "description": "맛집 방문 기록 및 리뷰 관리 앱",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  }
+}
