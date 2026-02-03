@@ -363,6 +363,13 @@
     const card = document.createElement('article');
     card.className = 'min-w-[220px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4';
 
+    // 카테고리별 이미지 추가
+    const img = document.createElement('img');
+    img.src = getCategoryImage(place.category);
+    img.alt = place.name;
+    img.className = 'w-full h-24 object-cover rounded-xl mb-3';
+    img.onerror = () => { img.style.display = 'none'; };
+
     // 헤더: 장소명, 카테고리, 별점
     const header = document.createElement('div');
     header.className = 'flex items-start justify-between';
@@ -404,7 +411,7 @@
     action.addEventListener('click', () => handleQuickRecord(place));
 
     footer.append(visitCount, action);
-    card.append(header, addressText, footer);
+    card.append(img, header, addressText, footer);
 
     return card;
   };
@@ -709,7 +716,7 @@
         phone: item.phone,
         address: item.address,
         rating: item.avg_rating || 4.3,
-        highlight: item.visit_count ? `최근 ${item.visit_count}회 방문 기록` : '주변 인기',
+        visit_count: item.visit_count || 0,  // 방문횟수 직접 전달
       }));
 
       // 4단계: 인기 장소 표시
