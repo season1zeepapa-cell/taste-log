@@ -51,6 +51,40 @@
     95: '천둥',
   };
 
+  // ================================
+  // 카테고리별 기본 이미지 URL (Unsplash)
+  // ================================
+  // 설명: 네이버 API가 이미지를 제공하지 않아서
+  // 카테고리에 맞는 음식 이미지를 기본으로 표시합니다
+  const categoryImages = {
+    '한식': 'https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=200&h=150&fit=crop',
+    '양식': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=200&h=150&fit=crop',
+    '일식': 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=200&h=150&fit=crop',
+    '중식': 'https://images.unsplash.com/photo-1525755662778-989d0524087e?w=200&h=150&fit=crop',
+    '카페': 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=200&h=150&fit=crop',
+    '분식': 'https://images.unsplash.com/photo-1590301157890-4810ed352733?w=200&h=150&fit=crop',
+    '육류': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200&h=150&fit=crop',
+    '고기': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=200&h=150&fit=crop',
+    '퓨전': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=150&fit=crop',
+    '치킨': 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=200&h=150&fit=crop',
+    '피자': 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&h=150&fit=crop',
+    '베이커리': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=150&fit=crop',
+    '디저트': 'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=200&h=150&fit=crop',
+    '기타': 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=150&fit=crop',
+  };
+
+  // 카테고리 문자열에서 이미지 URL 가져오기
+  // 예: "육류,고기요리" → 육류 이미지 반환
+  const getCategoryImage = (category) => {
+    if (!category) return categoryImages['기타'];
+
+    // 카테고리 문자열에서 매칭되는 키워드 찾기
+    for (const [key, url] of Object.entries(categoryImages)) {
+      if (category.includes(key)) return url;
+    }
+    return categoryImages['기타'];
+  };
+
   const state = {
     selectedPlace: null,
     exploreQuery: '',
@@ -333,6 +367,13 @@
       const card = document.createElement('article');
       card.className = 'min-w-[220px] rounded-2xl border border-slate-100 bg-amber-50 p-4';
 
+      // 카테고리별 이미지 추가
+      const img = document.createElement('img');
+      img.src = getCategoryImage(place.category);
+      img.alt = place.name;
+      img.className = 'w-full h-24 object-cover rounded-xl mb-3';
+      img.onerror = () => { img.style.display = 'none'; }; // 로드 실패 시 숨김
+
       const header = document.createElement('div');
       header.className = 'flex items-start justify-between';
 
@@ -370,7 +411,8 @@
 
       footer.append(sub, action);
 
-      card.append(header, menu, footer);
+      // 이미지를 카드 맨 앞에 추가
+      card.append(img, header, menu, footer);
       container.appendChild(card);
     });
   };
