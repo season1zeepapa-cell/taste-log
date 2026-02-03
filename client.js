@@ -485,12 +485,24 @@
 
       // 중복 제거 (이름 기준)
       const existingNames = new Set(state.popularPlaces.map(p => p.name));
-      const newPlaces = results.filter(p => !existingNames.has(p.name)).slice(0, 5);
+      const uniquePlaces = results.filter(p => !existingNames.has(p.name)).slice(0, 5);
 
-      if (newPlaces.length === 0) {
+      if (uniquePlaces.length === 0) {
         if (btn) btn.textContent = '더 이상 없음';
         return;
       }
+
+      // 방문 기록에서 visit_count 가져와서 병합
+      const popular = await api('/api/places/popular?limit=100');
+      const visitCountMap = {};
+      (popular.items || []).forEach(item => {
+        visitCountMap[item.place_name] = item.visit_count || 0;
+      });
+
+      const newPlaces = uniquePlaces.map(place => ({
+        ...place,
+        visit_count: visitCountMap[place.name] || 0,
+      }));
 
       // 상태 업데이트
       state.popularPlaces = [...state.popularPlaces, ...newPlaces];
@@ -698,43 +710,34 @@
   // 흐름: API 호출 → 데이터 가공 → 화면 렌더링
   const refreshData = async () => {
     try {
-      // 1단계: 여러 API를 동시에 호출 (병렬 처리로 속도 향상)
-      const [timeline, popular] = await Promise.all([
-        api('/api/visits?limit=8'),    // 타임라인용 방문 기록
-        api('/api/places/popular?limit=5'), // 인기 장소
-      ]);
-
-      // 2단계: 상태 업데이트 및 화면 렌더링
+      // 1단계: 타임라인 데이터 로드
+      const timeline = await api('/api/visits?limit=8');
       state.visits = timeline.items || [];
       renderTimeline(state.visits);
 
-      // 3단계: 인기 장소 데이터 가공
-      const popularItems = (popular.items || []).map((item, idx) => ({
-        id: `popular-${idx}`,
-        name: item.place_name,
-        category: item.category || '기타',
-        distance_m: item.distance_m || 400 + idx * 70,
-        phone: item.phone,
-        address: item.address,
-        rating: item.avg_rating || 4.3,
-        visit_count: item.visit_count || 0,  // 방문횟수 직접 전달
+      // 2단계: 네이버 API로 주변 맛집 5개 검색
+      console.log('🔍 최초 검색어:', getSearchQuery());
+      const searchResults = await searchPlaces(getSearchQuery());
+      const initialPlaces = searchResults.slice(0, 5);
+
+      // 3단계: 방문 기록에서 visit_count 가져와서 병합
+      const popular = await api('/api/places/popular?limit=100');
+      const visitCountMap = {};
+      (popular.items || []).forEach(item => {
+        visitCountMap[item.place_name] = item.visit_count || 0;
+      });
+
+      // 4단계: 검색 결과에 visit_count 추가
+      const placesWithVisitCount = initialPlaces.map(place => ({
+        ...place,
+        visit_count: visitCountMap[place.name] || 0,
       }));
 
-      // 4단계: 인기 장소 표시
-      // 방문 기록이 있으면 인기 장소 표시, 없으면 네이버 검색 결과 표시
-      if (popularItems.length) {
-        state.popularPlaces = popularItems;
-        state.popularOffset = popularItems.length;
-        renderHomePopular(popularItems);
-      } else {
-        // 방문 기록이 없으면 네이버 API로 현재 위치 기반 5개 검색
-        console.log('🔍 검색어:', getSearchQuery());
-        const defaultResults = await searchPlaces(getSearchQuery());
-        const initialPlaces = defaultResults.slice(0, 5);
-        state.popularPlaces = initialPlaces;
-        state.popularOffset = 5;
-        renderHomePopular(initialPlaces);
-      }
+      // 5단계: 상태 업데이트 및 렌더링
+      state.popularPlaces = placesWithVisitCount;
+      state.popularOffset = 5;
+      renderHomePopular(placesWithVisitCount);
+
     } catch (error) {
       console.warn('데이터 로딩 실패', error);
       // 오류 발생 시에도 네이버 API로 기본 검색 시도
@@ -746,7 +749,6 @@
         renderHomePopular(initialPlaces);
       } catch (fallbackError) {
         console.warn('네이버 검색도 실패:', fallbackError);
-        // 모든 것이 실패하면 빈 상태로 표시
         state.popularPlaces = [];
         state.popularOffset = 0;
         renderHomePopular([]);
