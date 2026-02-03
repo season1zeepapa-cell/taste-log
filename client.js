@@ -586,9 +586,11 @@
       btn.addEventListener('click', async () => {
         // 1. 활성화 스타일 변경 - 선택된 버튼만 검은 배경으로
         buttons.forEach(b => {
-          b.classList.remove('bg-slate-900', 'text-white', 'shadow-lg', 'scale-105');
+          b.classList.remove('bg-slate-800', 'text-white', 'shadow-sm');
+          b.classList.add('bg-white', 'border-2', 'border-slate-300', 'text-slate-700');
         });
-        btn.classList.add('bg-slate-900', 'text-white', 'shadow-lg', 'scale-105');
+        btn.classList.remove('bg-white', 'border-2', 'border-slate-300', 'text-slate-700');
+        btn.classList.add('bg-slate-800', 'text-white', 'shadow-sm');
 
         // 2. 선택된 카테고리 저장
         state.selectedCategory = btn.dataset.category;
