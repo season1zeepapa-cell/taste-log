@@ -361,22 +361,23 @@
   // ================================
   const createPlaceCard = (place) => {
     const card = document.createElement('article');
-    card.className = 'min-w-[220px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4';
+    // 카드 크기 고정: 너비 220px, 높이 280px
+    card.className = 'w-[220px] h-[280px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4 flex flex-col';
 
     // 카테고리별 이미지 추가
     const img = document.createElement('img');
     img.src = getCategoryImage(place.category);
     img.alt = place.name;
-    img.className = 'w-full h-24 object-cover rounded-xl mb-3';
+    img.className = 'w-full h-24 object-cover rounded-xl mb-3 flex-shrink-0';
     img.onerror = () => { img.style.display = 'none'; };
 
     // 헤더: 장소명, 카테고리, 별점
     const header = document.createElement('div');
-    header.className = 'flex items-start justify-between';
+    header.className = 'flex items-start justify-between flex-shrink-0';
 
     const titleWrap = document.createElement('div');
     const title = document.createElement('h3');
-    title.className = 'font-semibold';
+    title.className = 'font-semibold truncate';
     title.textContent = place.name;
     const meta = document.createElement('p');
     meta.className = 'text-xs text-slate-500';
@@ -385,19 +386,19 @@
     titleWrap.append(title, meta);
 
     const rating = document.createElement('span');
-    rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white';
+    rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white flex-shrink-0';
     rating.textContent = Number(place.rating || place.avg_rating || 0).toFixed(1);
 
     header.append(titleWrap, rating);
 
-    // 주소 표시
+    // 주소 표시 (길면 줄바꿈, 최대 2줄)
     const addressText = document.createElement('p');
-    addressText.className = 'mt-3 text-sm text-slate-600';
+    addressText.className = 'mt-3 text-sm text-slate-600 break-words line-clamp-2 flex-grow';
     addressText.textContent = place.address || place.roadAddress || '';
 
-    // 푸터: 방문횟수 + 바로 기록 버튼
+    // 푸터: 방문횟수 + 바로 기록 버튼 (하단 고정)
     const footer = document.createElement('div');
-    footer.className = 'mt-4 flex items-center justify-between';
+    footer.className = 'mt-auto pt-3 flex items-center justify-between flex-shrink-0';
 
     const visitCount = document.createElement('span');
     visitCount.className = 'text-xs text-amber-700';
