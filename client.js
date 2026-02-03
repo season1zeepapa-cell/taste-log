@@ -698,11 +698,15 @@
       title.className = 'font-semibold truncate';
       title.textContent = place.place_name;
 
-      // 평균 평점 계산
-      const avgRating = place.visits.reduce((sum, v) => sum + (v.rating_overall || 0), 0) / place.visits.length;
+      // 평균 평점 계산 (유효한 평점만, 소수점 첫째자리 반올림)
+      const validRatings = place.visits.filter(v => v.rating_overall && v.rating_overall > 0);
+      const avgRating = validRatings.length > 0
+        ? validRatings.reduce((sum, v) => sum + Number(v.rating_overall), 0) / validRatings.length
+        : 0;
+      const roundedRating = Math.round(avgRating * 10) / 10; // 소수점 첫째자리 반올림
       const rating = document.createElement('span');
       rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white flex-shrink-0 ml-2';
-      rating.textContent = avgRating.toFixed(1);
+      rating.textContent = roundedRating.toFixed(1);
 
       header.append(title, rating);
 
