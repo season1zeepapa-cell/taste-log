@@ -96,6 +96,7 @@
     popularPlaces: [],     // 현재 표시된 맛집 목록 (중복 체크용)
     popularOffset: 0,      // 다음 검색에 사용할 오프셋
     currentArea: '성수동',  // 현재 위치 동네명 (기본값)
+    selectedCategory: '전체', // 선택된 음식 카테고리
   };
 
   // ================================
@@ -388,9 +389,13 @@
 
     header.append(titleWrap, rating);
 
-    const menu = document.createElement('p');
-    menu.className = 'mt-3 text-sm text-slate-600';
-    menu.textContent = place.highlight || '네이버 추천 맛집';
+    // 네이버 지도 링크 (기존 "네이버 검색 결과" 문구 대체)
+    const mapLink = document.createElement('a');
+    mapLink.href = place.link || `https://map.naver.com/v5/search/${encodeURIComponent(place.name + ' ' + (place.address || ''))}`;
+    mapLink.target = '_blank';
+    mapLink.rel = 'noopener noreferrer';
+    mapLink.className = 'mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:underline';
+    mapLink.innerHTML = '📍 네이버 지도에서 보기';
 
     const footer = document.createElement('div');
     footer.className = 'mt-4 flex items-center justify-between';
@@ -405,7 +410,7 @@
     action.addEventListener('click', () => handleQuickRecord(place));
 
     footer.append(sub, action);
-    card.append(img, header, menu, footer);
+    card.append(img, header, mapLink, footer);
 
     return card;
   };
@@ -511,6 +516,45 @@
     if (btn) {
       btn.addEventListener('click', loadMorePlaces);
     }
+  };
+
+  // ================================
+  // 카테고리 필터 이벤트 설정
+  // ================================
+  const setupCategoryFilters = () => {
+    const buttons = qsa('.category-btn');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        // 1. 활성화 스타일 변경
+        buttons.forEach(b => {
+          b.classList.remove('bg-slate-900', 'text-white');
+          b.classList.add('border', 'border-slate-200', 'text-slate-600');
+        });
+        btn.classList.add('bg-slate-900', 'text-white');
+        btn.classList.remove('border', 'border-slate-200', 'text-slate-600');
+
+        // 2. 선택된 카테고리 저장
+        state.selectedCategory = btn.dataset.category;
+
+        // 3. 카테고리에 맞는 검색어 생성
+        const query = state.selectedCategory === '전체'
+          ? getSearchQuery()
+          : `${state.currentArea} ${state.selectedCategory}`;
+
+        console.log('🏷️ 카테고리 필터:', state.selectedCategory, '→', query);
+
+        // 4. 검색 및 렌더링
+        try {
+          const results = await searchPlaces(query);
+          state.popularPlaces = results.slice(0, 5);
+          state.popularOffset = 5;
+          renderHomePopular(state.popularPlaces);
+        } catch (error) {
+          console.warn('카테고리 검색 실패:', error);
+        }
+      });
+    });
   };
 
   const renderTimeline = (items) => {
@@ -713,6 +757,7 @@
     setupRecordActions();
     setupRecordFilters();
     setupLoadMore();              // 더보기 버튼 이벤트 설정
+    setupCategoryFilters();       // 카테고리 필터 이벤트 설정
     refreshData();
   };
 
