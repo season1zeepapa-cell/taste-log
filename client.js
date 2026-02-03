@@ -95,6 +95,7 @@
     tags: [],
     popularPlaces: [],     // 현재 표시된 맛집 목록 (중복 체크용)
     popularOffset: 0,      // 다음 검색에 사용할 오프셋
+    currentArea: '성수동',  // 현재 위치 동네명 (기본값)
   };
 
   // ================================
@@ -244,7 +245,8 @@
   // ================================
   // 기본 검색어 (앱 시작 시 검색할 키워드)
   // ================================
-  const defaultSearchQuery = '성수동 맛집';
+  // 현재 위치 기반 검색어 생성 함수
+  const getSearchQuery = () => `${state.currentArea} 맛집`;
 
   // ================================
   // 네이버 API 상태 확인 함수
@@ -333,6 +335,12 @@
       const area = geoJson.address?.borough || geoJson.address?.district || geoJson.address?.county || '';
       const locationText = area ? `${area} · ${city}` : `${city}`;
 
+      // 현재 위치를 state에 저장 (맛집 검색에 사용)
+      if (area) {
+        state.currentArea = area;
+        console.log('📍 현재 위치:', area);
+      }
+
       const weatherResponse = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&timezone=Asia/Seoul`
       );
@@ -342,6 +350,7 @@
       const condition = weatherMap[code] || '맑음';
       setHeaderLocation(locationText, `${condition} · ${temp}°C · 체감 쾌적`);
     } catch (error) {
+      console.log('📍 위치 권한 거부 또는 오류, 기본 위치(성수동) 사용');
       setHeaderLocation(defaultLocation, '맑음 · 12°C · 미세먼지 좋음');
     }
   };
@@ -449,16 +458,18 @@
     }
 
     try {
-      // 다양한 검색어로 더 많은 결과 가져오기
+      // 현재 위치 기반 다양한 검색어로 더 많은 결과 가져오기
+      const area = state.currentArea;
       const searchQueries = [
-        '성수동 맛집',
-        '성수 레스토랑',
-        '성수역 맛집',
-        '성수동 카페',
-        '성수 음식점',
+        `${area} 맛집`,
+        `${area} 레스토랑`,
+        `${area} 카페`,
+        `${area} 음식점`,
+        `${area} 맛있는곳`,
       ];
       const queryIndex = Math.floor(state.popularOffset / 5) % searchQueries.length;
       const query = searchQueries[queryIndex];
+      console.log('🔍 더보기 검색:', query);
 
       // 네이버 API에서 10개 검색 (중복 제거 후 5개 선택)
       const results = await searchPlaces(query);
@@ -668,8 +679,9 @@
         state.popularOffset = popularItems.length;
         renderHomePopular(popularItems);
       } else {
-        // 방문 기록이 없으면 네이버 API로 기본 5개 검색
-        const defaultResults = await searchPlaces(defaultSearchQuery);
+        // 방문 기록이 없으면 네이버 API로 현재 위치 기반 5개 검색
+        console.log('🔍 검색어:', getSearchQuery());
+        const defaultResults = await searchPlaces(getSearchQuery());
         const initialPlaces = defaultResults.slice(0, 5);
         state.popularPlaces = initialPlaces;
         state.popularOffset = 5;
@@ -679,7 +691,7 @@
       console.warn('데이터 로딩 실패', error);
       // 오류 발생 시에도 네이버 API로 기본 검색 시도
       try {
-        const fallbackResults = await searchPlaces(defaultSearchQuery);
+        const fallbackResults = await searchPlaces(getSearchQuery());
         const initialPlaces = fallbackResults.slice(0, 5);
         state.popularPlaces = initialPlaces;
         state.popularOffset = 5;
