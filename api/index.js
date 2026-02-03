@@ -65,6 +65,11 @@ async function ensureSchema() {
       ALTER TABLE visits ADD COLUMN IF NOT EXISTS area TEXT;
     `);
 
+    // 이미지 데이터 컬럼 추가 (마이그레이션)
+    await client.query(`
+      ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_data TEXT;
+    `);
+
     isInitialized = true;
     console.log('✅ 데이터베이스 테이블이 준비되었습니다!');
   } finally {
@@ -247,6 +252,7 @@ app.post('/api/visits', async (req, res) => {
     phone,
     distance_m,
     area,
+    image_data,
   } = req.body || {};
 
   if (!place_name) {
@@ -273,9 +279,10 @@ app.post('/api/visits', async (req, res) => {
         address,
         phone,
         distance_m,
-        area
+        area,
+        image_data
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
       ) RETURNING *;`,
       [
         place_name,
@@ -294,6 +301,7 @@ app.post('/api/visits', async (req, res) => {
         phone || null,
         distance_m || null,
         area || null,
+        image_data || null,
       ]
     );
     res.status(201).json(result.rows[0]);
@@ -330,6 +338,7 @@ app.put('/api/visits/:id', async (req, res) => {
     'phone',
     'distance_m',
     'area',
+    'image_data',
   ];
 
   const updates = [];

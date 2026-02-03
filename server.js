@@ -54,6 +54,16 @@ const ensureSchema = async () => {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+
+    // 마이그레이션: area 컬럼 추가
+    await client.query(`
+      ALTER TABLE visits ADD COLUMN IF NOT EXISTS area TEXT;
+    `);
+
+    // 마이그레이션: image_data 컬럼 추가
+    await client.query(`
+      ALTER TABLE visits ADD COLUMN IF NOT EXISTS image_data TEXT;
+    `);
   } finally {
     client.release();
   }
@@ -205,6 +215,8 @@ app.post('/api/visits', async (req, res) => {
     address,
     phone,
     distance_m,
+    area,
+    image_data,
   } = req.body || {};
 
   if (!place_name) {
@@ -230,9 +242,11 @@ app.post('/api/visits', async (req, res) => {
         notes,
         address,
         phone,
-        distance_m
+        distance_m,
+        area,
+        image_data
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
       ) RETURNING *;`,
       [
         place_name,
@@ -250,6 +264,8 @@ app.post('/api/visits', async (req, res) => {
         address || null,
         phone || null,
         distance_m || null,
+        area || null,
+        image_data || null,
       ]
     );
     res.status(201).json(result.rows[0]);
@@ -281,6 +297,8 @@ app.put('/api/visits/:id', async (req, res) => {
     'address',
     'phone',
     'distance_m',
+    'area',
+    'image_data',
   ];
 
   const updates = [];

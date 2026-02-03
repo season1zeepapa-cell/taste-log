@@ -113,6 +113,17 @@
   // 설명: window.prompt 대신 예쁜 모달 창을 사용합니다
   let modalResolve = null;  // 모달 결과를 반환할 Promise resolve 함수
   let editingVisitId = null;  // null이면 새 기록, 숫자면 수정 모드
+  let selectedImageData = null;  // Base64 이미지 데이터
+
+  // 파일을 Base64로 변환하는 함수
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   // 모달 열기 함수
   // place: 미리 선택된 장소 정보 (선택사항)
@@ -132,6 +143,10 @@
       const starBtns = qsa('.star-btn');
       const confirmBtn = qs('#modal-confirm');
       const deleteBtn = qs('#modal-delete');
+      // 이미지 관련 요소
+      const imageInput = qs('#modal-image');
+      const imagePreview = qs('#image-preview');
+      const imagePreviewContainer = qs('#image-preview-container');
 
       // 모달 제목 및 버튼 텍스트 변경
       if (modalTitle) {
@@ -164,6 +179,16 @@
         noteInput.value = '';
         ratingDisplay.textContent = '4.5';
         updateStars(4.5, starBtns);
+      }
+
+      // 이미지 초기화
+      selectedImageData = existingVisit?.image_data || null;
+      if (imageInput) imageInput.value = '';  // 파일 선택 초기화
+      if (selectedImageData && imagePreview && imagePreviewContainer) {
+        imagePreview.src = selectedImageData;
+        imagePreviewContainer.classList.remove('hidden');
+      } else if (imagePreviewContainer) {
+        imagePreviewContainer.classList.add('hidden');
       }
 
       // 모달 표시 (hidden 클래스 제거)
@@ -219,6 +244,11 @@
     const noteInput = qs('#modal-note');
     const ratingDisplay = qs('#rating-display');
     const starBtns = qsa('.star-btn');
+    // 이미지 관련 요소
+    const imageInput = qs('#modal-image');
+    const imagePreview = qs('#image-preview');
+    const imagePreviewContainer = qs('#image-preview-container');
+    const imageRemoveBtn = qs('#image-remove');
 
     // 배경 클릭 시 닫기
     backdrop?.addEventListener('click', () => closeRecordModal(null));
@@ -242,7 +272,37 @@
         return;
       }
 
-      closeRecordModal({ name, rating, note });
+      closeRecordModal({ name, rating, note, imageData: selectedImageData });
+    });
+
+    // 이미지 파일 선택 시 미리보기
+    imageInput?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // 크기 검증 (500KB)
+      if (file.size > 500 * 1024) {
+        window.alert('이미지 크기는 500KB 이하여야 합니다.');
+        imageInput.value = '';
+        return;
+      }
+
+      // Base64 변환 및 미리보기
+      try {
+        selectedImageData = await fileToBase64(file);
+        if (imagePreview) imagePreview.src = selectedImageData;
+        if (imagePreviewContainer) imagePreviewContainer.classList.remove('hidden');
+      } catch (error) {
+        console.warn('이미지 변환 실패:', error);
+        window.alert('이미지를 처리할 수 없습니다.');
+      }
+    });
+
+    // 이미지 삭제 버튼
+    imageRemoveBtn?.addEventListener('click', () => {
+      selectedImageData = null;
+      if (imageInput) imageInput.value = '';
+      if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
     });
 
     // 모달 내 삭제 버튼 클릭 시 (수정 모드에서만 표시)
@@ -740,7 +800,8 @@
         visit_date: item.visit_date,
         notes: item.notes,
         rating_overall: item.rating_overall,
-        tags: item.tags
+        tags: item.tags,
+        image_data: item.image_data,  // 사진 데이터
       });
     });
 
@@ -760,9 +821,10 @@
       const headerArea = document.createElement('div');
       headerArea.className = 'flex gap-4';
 
-      // 썸네일 (카테고리 이미지)
+      // 썸네일 (사용자 이미지 우선, 없으면 카테고리 이미지)
       const thumb = document.createElement('img');
-      thumb.src = getCategoryImage(place.category);
+      const firstVisitImage = place.visits[0]?.image_data;
+      thumb.src = firstVisitImage || getCategoryImage(place.category);
       thumb.alt = place.category || '기타';
       thumb.className = 'h-20 w-20 rounded-xl object-cover flex-shrink-0';
       thumb.onerror = () => { thumb.style.display = 'none'; };
@@ -876,7 +938,7 @@
     if (!result) return;
 
     // 3단계: 입력 데이터 추출
-    const { name, rating, note } = result;
+    const { name, rating, note, imageData } = result;
 
     const payload = {
       place_name: name,
@@ -889,6 +951,7 @@
       distance_m: place?.distance_m || null,
       tags: place?.tags || null,
       area: state.currentArea,  // 현재 지역 저장
+      image_data: imageData || null,  // 사진 데이터
     };
 
     try {
@@ -916,13 +979,18 @@
       // 3단계: 취소 시 종료
       if (!result) return;
 
-      // 4단계: PUT API 호출 (별점과 한줄평만 수정)
+      // 4단계: PUT API 호출 (별점, 한줄평, 사진 수정)
+      const updateBody = {
+        rating_overall: result.rating,
+        notes: result.note || null,
+      };
+      // 이미지가 변경된 경우에만 포함 (undefined가 아닌 경우)
+      if (result.imageData !== undefined) {
+        updateBody.image_data = result.imageData;
+      }
       await api(`/api/visits/${visitId}`, {
         method: 'PUT',
-        body: {
-          rating_overall: result.rating,
-          notes: result.note || null,
-        }
+        body: updateBody,
       });
 
       // 5단계: 화면 새로고침

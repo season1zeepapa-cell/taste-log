@@ -247,6 +247,25 @@
                 class="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
               ></textarea>
             </div>
+
+            <!-- 사진 업로드 -->
+            <div>
+              <label class="text-sm font-semibold text-slate-700">사진 (선택)</label>
+              <div class="mt-2">
+                <!-- 미리보기 영역 -->
+                <div id="image-preview-container" class="hidden mb-2">
+                  <img id="image-preview" class="w-full h-32 object-cover rounded-xl" alt="미리보기" />
+                  <button id="image-remove" type="button" class="mt-1 text-xs text-red-500 hover:text-red-700">🗑️ 사진 삭제</button>
+                </div>
+                <!-- 파일 선택 버튼 -->
+                <label class="cursor-pointer inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                  <span>📷</span>
+                  <span>사진 선택</span>
+                  <input id="modal-image" type="file" accept="image/*" class="hidden" />
+                </label>
+                <p class="mt-1 text-xs text-slate-400">최대 500KB</p>
+              </div>
+            </div>
           </div>
 
           <!-- 버튼 -->
