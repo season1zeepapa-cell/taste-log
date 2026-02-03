@@ -556,6 +556,27 @@
   };
 
   // ================================
+  // 카테고리별 모던 그라데이션 색상
+  // ================================
+  const categoryGradients = {
+    '전체': 'linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #fcd34d 100%)',
+    '한식': 'linear-gradient(135deg, #fee2e2 0%, #fecaca 50%, #f87171 100%)',
+    '양식': 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #60a5fa 100%)',
+    '일식': 'linear-gradient(135deg, #fce7f3 0%, #fbcfe8 50%, #f472b6 100%)',
+    '중식': 'linear-gradient(135deg, #fef9c3 0%, #fef08a 50%, #facc15 100%)',
+    '카페': 'linear-gradient(135deg, #ffedd5 0%, #fed7aa 50%, #fb923c 100%)',
+    '분식': 'linear-gradient(135deg, #ffedd5 0%, #fdba74 50%, #f97316 100%)',
+  };
+
+  // 배경 그라데이션 변경 함수
+  const changeBackgroundGradient = (category) => {
+    const body = qs('#app-body');
+    if (!body) return;
+    const gradient = categoryGradients[category] || categoryGradients['전체'];
+    body.style.background = gradient;
+  };
+
+  // ================================
   // 카테고리 필터 이벤트 설정
   // ================================
   const setupCategoryFilters = () => {
@@ -574,14 +595,17 @@
         // 2. 선택된 카테고리 저장
         state.selectedCategory = btn.dataset.category;
 
-        // 3. 카테고리에 맞는 검색어 생성
+        // 3. 배경 그라데이션 변경
+        changeBackgroundGradient(state.selectedCategory);
+
+        // 4. 카테고리에 맞는 검색어 생성
         const query = state.selectedCategory === '전체'
           ? getSearchQuery()
           : `${state.currentArea} ${state.selectedCategory}`;
 
         console.log('🏷️ 카테고리 필터:', state.selectedCategory, '→', query);
 
-        // 4. 주변 맛집 검색 및 렌더링
+        // 5. 주변 맛집 검색 및 렌더링
         try {
           const results = await searchPlaces(query);
           state.popularPlaces = results.slice(0, 5);
@@ -591,7 +615,7 @@
           console.warn('카테고리 검색 실패:', error);
         }
 
-        // 5. 타임라인(내 기록)도 카테고리 필터링
+        // 6. 타임라인(내 기록)도 카테고리 필터링
         filterTimelineByCategory(state.selectedCategory);
       });
     });
