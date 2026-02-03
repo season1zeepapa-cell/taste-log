@@ -211,6 +211,36 @@
   const defaultSearchQuery = '성수동 맛집';
 
   // ================================
+  // 네이버 API 상태 확인 함수
+  // ================================
+  // 설명: 헤더에 네이버 API 연결 상태를 표시합니다
+  // 정상: 파란색 점 + "네이버 API 정상"
+  // 오류: 빨간색 점 + "네이버 API 오류"
+  const checkNaverApiStatus = async () => {
+    const dot = qs('#api-status-dot');
+    const text = qs('#api-status-text');
+
+    // 요소가 없으면 종료
+    if (!dot || !text) return;
+
+    try {
+      // 간단한 검색으로 API 테스트 (결과 1개만 요청)
+      const result = await api('/api/places/search?query=테스트&display=1');
+
+      // 성공: 파란색 표시
+      dot.classList.remove('bg-slate-400', 'bg-red-400');
+      dot.classList.add('bg-blue-400');
+      text.textContent = '네이버 API 정상';
+    } catch (error) {
+      // 실패: 빨간색 표시
+      console.warn('네이버 API 상태 확인 실패:', error);
+      dot.classList.remove('bg-slate-400', 'bg-blue-400');
+      dot.classList.add('bg-red-400');
+      text.textContent = '네이버 API 오류';
+    }
+  };
+
+  // ================================
   // 네이버 지역 검색 API 호출 함수
   // ================================
   // 설명: 검색어를 받아서 서버의 /api/places/search 엔드포인트를 호출합니다
@@ -530,8 +560,9 @@
   };
 
   const init = async () => {
-    await loadWeather();
-    setupModalEvents();     // 모달 이벤트 설정 추가
+    await loadWeather();          // 현재 위치 + 날씨 정보 로드
+    await checkNaverApiStatus();  // 네이버 API 상태 확인
+    setupModalEvents();           // 모달 이벤트 설정
     setupRecordActions();
     setupRecordFilters();
     refreshData();
