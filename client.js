@@ -428,7 +428,7 @@
     visitCount.textContent = count > 0 ? `방문 ${count}회` : '새로운 맛집';
 
     const action = document.createElement('button');
-    action.className = 'rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800';
+    action.className = 'rounded-full bg-amber-500 hover:bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-md transition-colors';
     action.textContent = '바로 기록';
     action.addEventListener('click', () => handleQuickRecord(place));
 
@@ -644,65 +644,117 @@
     if (!container) return;
     container.innerHTML = '';
 
-    items.forEach((item) => {
+    // 1. place_name으로 그룹화
+    const grouped = {};
+    items.forEach(item => {
+      const key = item.place_name;
+      if (!grouped[key]) {
+        grouped[key] = {
+          place_name: item.place_name,
+          category: item.category,
+          address: item.address,
+          visits: []
+        };
+      }
+      grouped[key].visits.push({
+        visit_date: item.visit_date,
+        notes: item.notes,
+        rating_overall: item.rating_overall,
+        tags: item.tags
+      });
+    });
+
+    // 2. 그룹화된 데이터로 카드 렌더링
+    Object.values(grouped).forEach((place) => {
       const card = document.createElement('article');
-      card.className = 'relative flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 pl-6 overflow-hidden';
-      // 필터용 데이터 속성 추가
-      card.dataset.category = item.category || '기타';
+      card.className = 'relative rounded-2xl border border-slate-100 bg-slate-50 p-4 pl-6 overflow-hidden';
+      card.dataset.category = place.category || '기타';
 
       // 카테고리 리본 (왼쪽 상단)
       const ribbon = document.createElement('div');
-      const ribbonColor = getCategoryRibbonColor(item.category);
+      const ribbonColor = getCategoryRibbonColor(place.category);
       ribbon.className = `absolute -left-1 top-4 ${ribbonColor} text-white text-xs px-3 py-1 rounded-r-full shadow-md`;
-      ribbon.textContent = item.category || '기타';
+      ribbon.textContent = place.category || '기타';
+
+      // 헤더 영역 (이미지 + 정보)
+      const headerArea = document.createElement('div');
+      headerArea.className = 'flex gap-4';
 
       // 썸네일 (카테고리 이미지)
       const thumb = document.createElement('img');
-      thumb.src = getCategoryImage(item.category);
-      thumb.alt = item.category || '기타';
+      thumb.src = getCategoryImage(place.category);
+      thumb.alt = place.category || '기타';
       thumb.className = 'h-20 w-20 rounded-xl object-cover flex-shrink-0';
       thumb.onerror = () => { thumb.style.display = 'none'; };
 
-      const body = document.createElement('div');
-      body.className = 'flex-1 min-w-0';
+      // 기본 정보
+      const info = document.createElement('div');
+      info.className = 'flex-1 min-w-0';
 
       const header = document.createElement('div');
       header.className = 'flex items-center justify-between';
 
       const title = document.createElement('h3');
       title.className = 'font-semibold truncate';
-      title.textContent = item.place_name;
+      title.textContent = place.place_name;
 
+      // 평균 평점 계산
+      const avgRating = place.visits.reduce((sum, v) => sum + (v.rating_overall || 0), 0) / place.visits.length;
       const rating = document.createElement('span');
       rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white flex-shrink-0 ml-2';
-      rating.textContent = Number(item.rating_overall || 0).toFixed(1);
+      rating.textContent = avgRating.toFixed(1);
 
       header.append(title, rating);
 
-      const meta = document.createElement('p');
-      meta.className = 'mt-1 text-xs text-slate-500';
-      meta.textContent = `${formatDate(item.visit_date)}`;
+      const visitCountText = document.createElement('p');
+      visitCountText.className = 'mt-1 text-xs text-amber-600 font-medium';
+      visitCountText.textContent = `총 ${place.visits.length}회 방문`;
 
-      const tagsWrap = document.createElement('div');
-      tagsWrap.className = 'mt-2 flex flex-wrap gap-2 text-xs';
-      (item.tags || []).slice(0, 3).forEach((tag) => {
-        const tagEl = document.createElement('span');
-        tagEl.className = 'rounded-full bg-white px-2 py-1';
-        tagEl.textContent = `#${tag}`;
-        tagsWrap.appendChild(tagEl);
+      info.append(header, visitCountText);
+      headerArea.append(thumb, info);
+
+      // 방문 기록 리스트
+      const visitsList = document.createElement('div');
+      visitsList.className = 'mt-4 space-y-3 border-t border-slate-200 pt-3';
+
+      place.visits.forEach((visit, idx) => {
+        const visitItem = document.createElement('div');
+        visitItem.className = 'text-sm';
+
+        const dateRow = document.createElement('div');
+        dateRow.className = 'flex items-center gap-2 text-slate-500';
+        dateRow.innerHTML = `<span>📅</span><span>${formatDate(visit.visit_date)}</span>`;
+        if (visit.rating_overall) {
+          dateRow.innerHTML += `<span class="text-amber-500">⭐ ${Number(visit.rating_overall).toFixed(1)}</span>`;
+        }
+
+        visitItem.appendChild(dateRow);
+
+        // 리뷰 내용
+        if (visit.notes) {
+          const reviewText = document.createElement('p');
+          reviewText.className = 'mt-1 text-slate-600 italic pl-6';
+          reviewText.textContent = `"${visit.notes}"`;
+          visitItem.appendChild(reviewText);
+        }
+
+        // 태그 (첫 번째 방문만)
+        if (idx === 0 && visit.tags && visit.tags.length > 0) {
+          const tagsWrap = document.createElement('div');
+          tagsWrap.className = 'mt-2 flex flex-wrap gap-2 text-xs pl-6';
+          visit.tags.slice(0, 3).forEach((tag) => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'rounded-full bg-white px-2 py-1';
+            tagEl.textContent = `#${tag}`;
+            tagsWrap.appendChild(tagEl);
+          });
+          visitItem.appendChild(tagsWrap);
+        }
+
+        visitsList.appendChild(visitItem);
       });
 
-      body.append(header, meta, tagsWrap);
-
-      // 리뷰 내용 추가 (notes가 있으면 표시)
-      if (item.notes) {
-        const review = document.createElement('p');
-        review.className = 'mt-2 text-sm text-slate-600 italic line-clamp-2';
-        review.textContent = `"${item.notes}"`;
-        body.appendChild(review);
-      }
-
-      card.append(ribbon, thumb, body);
+      card.append(ribbon, headerArea, visitsList);
       container.appendChild(card);
     });
   };
