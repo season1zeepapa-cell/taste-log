@@ -113,7 +113,7 @@
   // 설명: window.prompt 대신 예쁜 모달 창을 사용합니다
   let modalResolve = null;  // 모달 결과를 반환할 Promise resolve 함수
   let editingVisitId = null;  // null이면 새 기록, 숫자면 수정 모드
-  let selectedImageData = null;  // Base64 이미지 데이터
+  let selectedImages = [];  // Base64 이미지 배열 (최대 3개)
 
   // 파일을 Base64로 변환하는 함수
   const fileToBase64 = (file) => {
@@ -122,6 +122,38 @@
       reader.onload = () => resolve(reader.result);
       reader.onerror = reject;
       reader.readAsDataURL(file);
+    });
+  };
+
+  // 갤러리 UI 렌더링 함수
+  // 설명: 선택된 이미지들을 3열 그리드로 표시합니다
+  // 각 이미지에 × 버튼이 있어서 개별 삭제가 가능합니다
+  const renderImageGallery = () => {
+    const gallery = qs('#image-gallery');
+    if (!gallery) return;
+
+    gallery.innerHTML = '';  // 기존 내용 지우기
+
+    selectedImages.forEach((imgData, index) => {
+      // 이미지 + 삭제 버튼 컨테이너
+      const item = document.createElement('div');
+      item.className = 'relative';
+
+      // 썸네일 이미지
+      const img = document.createElement('img');
+      img.src = imgData;
+      img.className = 'w-full h-20 object-cover rounded-lg';
+      img.alt = `사진 ${index + 1}`;
+
+      // × 삭제 버튼 (오른쪽 상단)
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.dataset.index = index;
+      removeBtn.className = 'absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600';
+      removeBtn.textContent = '×';
+
+      item.append(img, removeBtn);
+      gallery.appendChild(item);
     });
   };
 
@@ -145,8 +177,6 @@
       const deleteBtn = qs('#modal-delete');
       // 이미지 관련 요소
       const imageInput = qs('#modal-image');
-      const imagePreview = qs('#image-preview');
-      const imagePreviewContainer = qs('#image-preview-container');
 
       // 모달 제목 및 버튼 텍스트 변경
       if (modalTitle) {
@@ -181,15 +211,23 @@
         updateStars(4.5, starBtns);
       }
 
-      // 이미지 초기화
-      selectedImageData = existingVisit?.image_data || null;
-      if (imageInput) imageInput.value = '';  // 파일 선택 초기화
-      if (selectedImageData && imagePreview && imagePreviewContainer) {
-        imagePreview.src = selectedImageData;
-        imagePreviewContainer.classList.remove('hidden');
-      } else if (imagePreviewContainer) {
-        imagePreviewContainer.classList.add('hidden');
+      // 이미지 초기화 (배열 또는 단일 문자열 호환)
+      // 설명: 기존 데이터가 JSON 배열이면 파싱하고,
+      // 단일 문자열이면 배열로 변환합니다 (하위 호환성)
+      const existingImageData = existingVisit?.image_data;
+      if (existingImageData) {
+        try {
+          const parsed = JSON.parse(existingImageData);
+          selectedImages = Array.isArray(parsed) ? parsed : [existingImageData];
+        } catch {
+          // JSON 파싱 실패 = 단일 Base64 문자열 (기존 데이터)
+          selectedImages = existingImageData ? [existingImageData] : [];
+        }
+      } else {
+        selectedImages = [];
       }
+      if (imageInput) imageInput.value = '';  // 파일 선택 초기화
+      renderImageGallery();  // 갤러리 렌더링
 
       // 모달 표시 (hidden 클래스 제거)
       modal.classList.remove('hidden');
@@ -246,9 +284,7 @@
     const starBtns = qsa('.star-btn');
     // 이미지 관련 요소
     const imageInput = qs('#modal-image');
-    const imagePreview = qs('#image-preview');
-    const imagePreviewContainer = qs('#image-preview-container');
-    const imageRemoveBtn = qs('#image-remove');
+    const imageGallery = qs('#image-gallery');
 
     // 배경 클릭 시 닫기
     backdrop?.addEventListener('click', () => closeRecordModal(null));
@@ -272,37 +308,54 @@
         return;
       }
 
-      closeRecordModal({ name, rating, note, imageData: selectedImageData });
+      // 이미지 배열을 JSON 문자열로 변환하여 반환
+      // 빈 배열이면 null을 반환합니다
+      const imageData = selectedImages.length > 0 ? JSON.stringify(selectedImages) : null;
+      closeRecordModal({ name, rating, note, imageData });
     });
 
-    // 이미지 파일 선택 시 미리보기
+    // 이미지 파일 선택 시 (다중 파일 지원)
+    // 설명: 한 번에 여러 장을 선택할 수 있습니다
+    // 제한: 최대 3장, 각 파일 2MB 이하
     imageInput?.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
 
-      // 크기 검증 (500KB)
-      if (file.size > 500 * 1024) {
-        window.alert('이미지 크기는 500KB 이하여야 합니다.');
-        imageInput.value = '';
-        return;
+      for (const file of files) {
+        // 개수 제한 (3장)
+        if (selectedImages.length >= 3) {
+          window.alert('사진은 최대 3장까지 등록 가능합니다.');
+          break;
+        }
+
+        // 크기 제한 (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+          window.alert(`${file.name}: 이미지 크기는 2MB 이하여야 합니다.`);
+          continue;
+        }
+
+        // Base64 변환 및 배열에 추가
+        try {
+          const base64 = await fileToBase64(file);
+          selectedImages.push(base64);
+        } catch (error) {
+          console.warn('이미지 변환 실패:', file.name, error);
+        }
       }
 
-      // Base64 변환 및 미리보기
-      try {
-        selectedImageData = await fileToBase64(file);
-        if (imagePreview) imagePreview.src = selectedImageData;
-        if (imagePreviewContainer) imagePreviewContainer.classList.remove('hidden');
-      } catch (error) {
-        console.warn('이미지 변환 실패:', error);
-        window.alert('이미지를 처리할 수 없습니다.');
-      }
+      renderImageGallery();
+      imageInput.value = '';  // 입력 초기화 (같은 파일 재선택 가능)
     });
 
-    // 이미지 삭제 버튼
-    imageRemoveBtn?.addEventListener('click', () => {
-      selectedImageData = null;
-      if (imageInput) imageInput.value = '';
-      if (imagePreviewContainer) imagePreviewContainer.classList.add('hidden');
+    // 갤러리에서 개별 이미지 삭제 (이벤트 위임)
+    // 설명: × 버튼의 data-index 속성으로 삭제할 이미지를 식별합니다
+    imageGallery?.addEventListener('click', (e) => {
+      const target = e.target;
+      if (target.tagName === 'BUTTON' && target.dataset.index !== undefined) {
+        const index = parseInt(target.dataset.index, 10);
+        selectedImages.splice(index, 1);  // 배열에서 해당 이미지 제거
+        renderImageGallery();  // 갤러리 다시 렌더링
+      }
     });
 
     // 모달 내 삭제 버튼 클릭 시 (수정 모드에서만 표시)
@@ -822,8 +875,20 @@
       headerArea.className = 'flex gap-4';
 
       // 썸네일 (사용자 이미지 우선, 없으면 카테고리 이미지)
+      // 설명: JSON 배열 또는 단일 문자열 형식 모두 지원합니다 (하위 호환성)
       const thumb = document.createElement('img');
-      const firstVisitImage = place.visits[0]?.image_data;
+      let firstVisitImage = null;
+      const imageData = place.visits[0]?.image_data;
+      if (imageData) {
+        try {
+          const parsed = JSON.parse(imageData);
+          // 배열이면 첫 번째 이미지 사용
+          firstVisitImage = Array.isArray(parsed) ? parsed[0] : imageData;
+        } catch {
+          // JSON 파싱 실패 = 단일 Base64 문자열 (기존 데이터)
+          firstVisitImage = imageData;
+        }
+      }
       thumb.src = firstVisitImage || getCategoryImage(place.category);
       thumb.alt = place.category || '기타';
       thumb.className = 'h-20 w-20 rounded-xl object-cover flex-shrink-0';

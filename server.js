@@ -22,7 +22,9 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-app.use(express.json({ limit: '1mb' }));
+// 이미지 업로드를 위해 JSON 크기 제한을 10MB로 설정
+// (2MB × 3장 × 1.33 Base64 변환율 ≈ 8MB)
+app.use(express.json({ limit: '10mb' }));
 
 // 정적 파일 서빙 (client.js, index.html 등)
 // __dirname: 현재 server.js 파일이 있는 폴더
