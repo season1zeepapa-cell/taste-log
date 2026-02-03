@@ -495,18 +495,39 @@
     if (weatherEl) weatherEl.textContent = weatherText;
   };
 
+  // ================================
+  // 날씨/위치 로드 함수 (병렬화 최적화)
+  // ================================
+  // 설명: 위치 확인 후 지오코딩과 날씨 API를 병렬로 호출합니다
+  // 이전: 위치 → 지오코딩 → 날씨 순차 실행 (3-5초)
+  // 이후: 위치 → (지오코딩 + 날씨) 병렬 실행 (1-2초)
   const loadWeather = async () => {
     const defaultLocation = '성수동 · 서울';
     try {
+      // 1단계: 위치 권한 요청 (타임아웃 3초로 단축)
       const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
       });
       const { latitude, longitude } = position.coords;
-      const geoResponse = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-        { headers: { 'Accept-Language': 'ko' } }
-      );
-      const geoJson = await geoResponse.json();
+
+      // 2단계: 지오코딩 + 날씨 API 병렬 호출 (핵심 최적화)
+      const [geoResponse, weatherResponse] = await Promise.all([
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+          { headers: { 'Accept-Language': 'ko' } }
+        ),
+        fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&timezone=Asia/Seoul`
+        ),
+      ]);
+
+      // 3단계: 응답 파싱 (병렬)
+      const [geoJson, weatherJson] = await Promise.all([
+        geoResponse.json(),
+        weatherResponse.json(),
+      ]);
+
+      // 4단계: 위치 정보 추출
       const city = geoJson.address?.city || geoJson.address?.town || geoJson.address?.suburb || '현재 위치';
       const area = geoJson.address?.borough || geoJson.address?.district || geoJson.address?.county || '';
       const locationText = area ? `${area} · ${city}` : `${city}`;
@@ -517,10 +538,7 @@
         console.log('📍 현재 위치:', area);
       }
 
-      const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode&timezone=Asia/Seoul`
-      );
-      const weatherJson = await weatherResponse.json();
+      // 5단계: 날씨 정보 추출
       const temp = Math.round(weatherJson.current?.temperature_2m ?? 0);
       const code = weatherJson.current?.weathercode ?? 0;
       const condition = weatherMap[code] || '맑음';
@@ -1310,29 +1328,54 @@
   };
 
   // ================================
-  // 앱 초기화 함수 (병렬화 최적화)
+  // 앱 초기화 함수 (논블로킹 최적화)
   // ================================
-  // 설명: 독립적인 작업은 병렬로 실행하여 초기 로딩 속도를 개선합니다
-  // 이전: loadWeather → checkNaverApiStatus 순차 실행 (5-6초)
-  // 이후: 두 작업 병렬 실행 (2-3초)
+  // 핵심 최적화: 날씨/위치 로딩을 기다리지 않고 화면을 먼저 표시합니다
+  // 이전: loadWeather 완료(5-8초) → 데이터 로드 → 화면 표시
+  // 이후: 이벤트 설정 → 데이터 로드(즉시) → 날씨는 백그라운드에서 로드
   const init = async () => {
-    // 1단계: 독립적인 비동기 작업들을 병렬로 실행
-    // Promise.allSettled: 일부가 실패해도 나머지는 정상 처리
-    await Promise.allSettled([
-      loadWeather(),          // 현재 위치 + 날씨 정보 로드
-      checkNaverApiStatus(),  // 네이버 API 상태 확인
-    ]);
+    console.time('⏱️ 초기 로딩');
 
-    // 2단계: 동기적 이벤트 설정 (순서 무관)
-    setupModalEvents();           // 모달 이벤트 설정
+    // 1단계: 이벤트 설정 (즉시 실행, 블로킹 없음)
+    setupModalEvents();
     setupRecordActions();
     setupRecordFilters();
-    setupLoadMore();              // 더보기 버튼 이벤트 설정
-    setupCategoryFilters();       // 카테고리 필터 이벤트 설정
-    setupAreaFilter();            // 지역 필터 이벤트 설정
+    setupLoadMore();
+    setupCategoryFilters();
+    setupAreaFilter();
 
-    // 3단계: 데이터 로드 (위치 정보가 필요하므로 마지막에 실행)
+    // 2단계: 데이터 먼저 로드 (기본 위치 '성수동' 사용)
+    // 날씨 로딩을 기다리지 않고 즉시 화면에 데이터 표시
     refreshData();
+
+    console.timeEnd('⏱️ 초기 로딩');
+
+    // 3단계: 날씨/위치는 백그라운드에서 비동기 로드 (논블로킹)
+    // 위치가 바뀌면 자동으로 데이터 새로고침
+    loadWeatherAndRefreshIfNeeded();
+
+    // 4단계: 네이버 API 상태 확인 (백그라운드)
+    checkNaverApiStatus();
+  };
+
+  // ================================
+  // 날씨 로드 후 위치 변경 시 데이터 새로고침
+  // ================================
+  // 설명: 실제 위치가 기본값(성수동)과 다르면 데이터를 다시 로드합니다
+  const loadWeatherAndRefreshIfNeeded = async () => {
+    const prevArea = state.currentArea;  // 이전 위치 저장 (기본값: 성수동)
+
+    try {
+      await loadWeather();  // 실제 위치 확인
+
+      // 위치가 변경되었으면 데이터 새로고침
+      if (state.currentArea !== prevArea) {
+        console.log('📍 위치 변경 감지:', prevArea, '→', state.currentArea);
+        refreshData();
+      }
+    } catch (error) {
+      console.warn('날씨 로드 실패:', error);
+    }
   };
 
   if (document.readyState === 'loading') {

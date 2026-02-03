@@ -411,7 +411,15 @@ app.delete('/api/visits/:id', async (req, res) => {
 });
 
 // ====================================
-// API 엔드포인트 - 네이버 지역 검색
+// 네이버 검색 캐싱 설정
+// ====================================
+// 설명: 같은 검색어에 대해 5분간 캐싱하여 응답 속도 개선
+// Vercel Serverless: 함수 인스턴스 내에서만 캐시 유지
+let searchCache = {};
+const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5분
+
+// ====================================
+// API 엔드포인트 - 네이버 지역 검색 (캐싱 적용)
 // ====================================
 app.get('/api/places/search', async (req, res) => {
   const { query, display = 5 } = req.query;
@@ -419,6 +427,14 @@ app.get('/api/places/search', async (req, res) => {
   if (!query) {
     res.status(400).json({ error: 'query_required', message: '검색어를 입력해주세요' });
     return;
+  }
+
+  // 캐시 확인
+  const cacheKey = `${query}-${display}`;
+  const cached = searchCache[cacheKey];
+  if (cached && (Date.now() - cached.timestamp) < SEARCH_CACHE_TTL) {
+    console.log('📦 네이버 검색 캐시 반환:', query);
+    return res.json(cached.data);
   }
 
   const clientId = process.env.NAVER_CLIENT_ID;
@@ -470,11 +486,20 @@ app.get('/api/places/search', async (req, res) => {
       rating: null,
     }));
 
-    res.json({
+    // 응답 데이터 및 캐시 저장
+    const responseData = {
       items,
       total: data.total,
       display: data.display,
-    });
+    };
+
+    searchCache[cacheKey] = {
+      data: responseData,
+      timestamp: Date.now()
+    };
+    console.log('🔄 네이버 검색 캐시 저장:', query);
+
+    res.json(responseData);
 
   } catch (error) {
     console.error('네이버 검색 API 오류:', error);
