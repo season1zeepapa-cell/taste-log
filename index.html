@@ -106,7 +106,18 @@
 
       <section class="rounded-3xl bg-white p-6 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-xl font-bold">내 맛집 로드</h2>
+          <div class="flex items-center gap-3">
+            <h2 class="text-xl font-bold">내 맛집 로드</h2>
+            <!-- 지역 필터 버튼들 -->
+            <div id="area-filter" class="flex gap-2">
+              <button id="area-current-btn" class="rounded-full bg-amber-500 px-3 py-1 text-sm font-semibold text-white transition-colors">
+                성수동
+              </button>
+              <button id="area-all-btn" class="rounded-full bg-slate-200 px-3 py-1 text-sm font-semibold text-slate-600 hover:bg-slate-300 transition-colors">
+                전체
+              </button>
+            </div>
+          </div>
         </div>
         <div class="mt-6 grid gap-4 md:grid-cols-2 max-h-[500px] overflow-y-auto pr-2">
           <article class="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">

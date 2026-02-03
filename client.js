@@ -97,6 +97,7 @@
     popularOffset: 0,      // 다음 검색에 사용할 오프셋
     currentArea: '성수동',  // 현재 위치 동네명 (기본값)
     selectedCategory: '전체', // 선택된 음식 카테고리
+    areaFilter: 'current', // 지역 필터: 'current' (현재 지역) 또는 'all' (전체)
   };
 
   // ================================
@@ -891,29 +892,90 @@
   };
 
   // ================================
+  // 지역 필터 UI 업데이트 함수
+  // ================================
+  const updateAreaFilterUI = () => {
+    const currentBtn = qs('#area-current-btn');
+    const allBtn = qs('#area-all-btn');
+
+    if (state.areaFilter === 'current') {
+      // 현재 지역 버튼 활성화
+      currentBtn?.classList.remove('bg-slate-200', 'text-slate-600');
+      currentBtn?.classList.add('bg-amber-500', 'text-white');
+      // 전체 버튼 비활성화
+      allBtn?.classList.remove('bg-amber-500', 'text-white');
+      allBtn?.classList.add('bg-slate-200', 'text-slate-600');
+    } else {
+      // 전체 버튼 활성화
+      allBtn?.classList.remove('bg-slate-200', 'text-slate-600');
+      allBtn?.classList.add('bg-amber-500', 'text-white');
+      // 현재 지역 버튼 비활성화
+      currentBtn?.classList.remove('bg-amber-500', 'text-white');
+      currentBtn?.classList.add('bg-slate-200', 'text-slate-600');
+    }
+  };
+
+  // ================================
+  // 타임라인 데이터 로드 함수
+  // ================================
+  const loadTimelineData = async () => {
+    let url = '/api/visits?limit=20';
+
+    // 현재 지역 필터가 선택되었을 때만 area 조건 추가
+    if (state.areaFilter === 'current') {
+      url += `&area=${encodeURIComponent(state.currentArea)}`;
+      console.log('📍 현재 지역 데이터 조회:', state.currentArea);
+    } else {
+      console.log('📍 전체 데이터 조회');
+    }
+
+    const timeline = await api(url);
+    state.visits = timeline.items || [];
+    renderTimeline(state.visits);
+  };
+
+  // ================================
+  // 지역 필터 버튼 이벤트 설정
+  // ================================
+  const setupAreaFilter = () => {
+    const currentBtn = qs('#area-current-btn');
+    const allBtn = qs('#area-all-btn');
+
+    // 현재 지역 버튼 텍스트 업데이트
+    if (currentBtn) {
+      currentBtn.textContent = state.currentArea;
+    }
+
+    // 현재 지역 버튼 클릭
+    currentBtn?.addEventListener('click', async () => {
+      state.areaFilter = 'current';
+      updateAreaFilterUI();
+      await loadTimelineData();
+    });
+
+    // 전체 버튼 클릭
+    allBtn?.addEventListener('click', async () => {
+      state.areaFilter = 'all';
+      updateAreaFilterUI();
+      await loadTimelineData();
+    });
+  };
+
+  // ================================
   // 데이터 새로고침 함수
   // ================================
   // 설명: 서버에서 최신 데이터를 가져와 화면을 업데이트합니다
   // 흐름: API 호출 → 데이터 가공 → 화면 렌더링
   const refreshData = async () => {
     try {
-      // 1단계: 타임라인 데이터 로드 (현재 위치 기반 필터링)
-      // area 파라미터로 현재 위치(동네명)를 전달하여
-      // DB의 area 컬럼과 정확히 일치하는 기록만 조회합니다
-      // 예: state.currentArea='성수동' → WHERE area='성수동'
-      const area = state.currentArea;
-      console.log('📍 내 맛집 로드 - 현재 지역으로 DB 조회:', area);
-
-      // 현재 지역으로만 검색 (DB area 컬럼 기준)
-      // 해당 지역에 데이터가 없으면 빈 상태로 표시
-      const timeline = await api(`/api/visits?limit=20&area=${encodeURIComponent(area)}`);
-      state.visits = timeline.items || [];
-
-      if (state.visits.length === 0) {
-        console.log('📍 현재 지역에 저장된 맛집 기록이 없습니다:', area);
+      // 현재 지역 버튼 텍스트 업데이트
+      const currentBtn = qs('#area-current-btn');
+      if (currentBtn) {
+        currentBtn.textContent = state.currentArea;
       }
 
-      renderTimeline(state.visits);
+      // 1단계: 타임라인 데이터 로드 (지역 필터 상태에 따라)
+      await loadTimelineData();
 
       // 2단계: 네이버 API로 주변 맛집 5개 검색
       console.log('🔍 최초 검색어:', getSearchQuery());
@@ -964,6 +1026,7 @@
     setupRecordFilters();
     setupLoadMore();              // 더보기 버튼 이벤트 설정
     setupCategoryFilters();       // 카테고리 필터 이벤트 설정
+    setupAreaFilter();            // 지역 필터 이벤트 설정
     refreshData();
   };
 
