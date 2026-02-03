@@ -639,7 +639,7 @@
   };
 
   const renderTimeline = (items) => {
-    const section = findSectionByTitle('타임라인 & 지도 뷰');
+    const section = findSectionByTitle('내 맛집 로드');
     const container = section?.querySelector('.mt-6.grid');
     if (!container) return;
     container.innerHTML = '';
@@ -709,7 +709,7 @@
 
   // 타임라인 카테고리 필터 함수
   const filterTimelineByCategory = (category) => {
-    const section = findSectionByTitle('타임라인 & 지도 뷰');
+    const section = findSectionByTitle('내 맛집 로드');
     if (!section) return;
     const cards = section.querySelectorAll('[data-category]');
     cards.forEach(card => {
@@ -767,7 +767,7 @@
   };
 
   const setupRecordFilters = () => {
-    const section = findSectionByTitle('타임라인 & 지도 뷰');
+    const section = findSectionByTitle('내 맛집 로드');
     if (!section) return;
 
     const toggleButtons = qsa('div.rounded-full button', section).filter((btn) =>
