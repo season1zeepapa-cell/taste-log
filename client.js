@@ -93,6 +93,8 @@
     recordView: 'timeline',
     visits: [],
     tags: [],
+    popularPlaces: [],     // 현재 표시된 맛집 목록 (중복 체크용)
+    popularOffset: 0,      // 다음 검색에 사용할 오프셋
   };
 
   // ================================
@@ -356,6 +358,64 @@
     });
   };
 
+  // ================================
+  // 맛집 카드 생성 함수 (재사용 가능)
+  // ================================
+  const createPlaceCard = (place) => {
+    const card = document.createElement('article');
+    card.className = 'min-w-[220px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4';
+
+    // 카테고리별 이미지 추가
+    const img = document.createElement('img');
+    img.src = getCategoryImage(place.category);
+    img.alt = place.name;
+    img.className = 'w-full h-24 object-cover rounded-xl mb-3';
+    img.onerror = () => { img.style.display = 'none'; };
+
+    const header = document.createElement('div');
+    header.className = 'flex items-start justify-between';
+
+    const titleWrap = document.createElement('div');
+    const title = document.createElement('h3');
+    title.className = 'font-semibold';
+    title.textContent = place.name;
+    const meta = document.createElement('p');
+    meta.className = 'text-xs text-slate-500';
+    meta.textContent = `${place.category || '기타'} · ${formatDistance(place.distance_m)}`;
+
+    titleWrap.append(title, meta);
+
+    const rating = document.createElement('span');
+    rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white';
+    rating.textContent = Number(place.rating || 0).toFixed(1);
+
+    header.append(titleWrap, rating);
+
+    const menu = document.createElement('p');
+    menu.className = 'mt-3 text-sm text-slate-600';
+    menu.textContent = place.highlight || '네이버 추천 맛집';
+
+    const footer = document.createElement('div');
+    footer.className = 'mt-4 flex items-center justify-between';
+
+    const sub = document.createElement('span');
+    sub.className = 'text-xs text-amber-700';
+    sub.textContent = place.note || '바로 방문하기 좋음';
+
+    const action = document.createElement('button');
+    action.className = 'rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800';
+    action.textContent = '바로 기록';
+    action.addEventListener('click', () => handleQuickRecord(place));
+
+    footer.append(sub, action);
+    card.append(img, header, menu, footer);
+
+    return card;
+  };
+
+  // ================================
+  // 맛집 카드 렌더링 (초기 로드)
+  // ================================
   const renderHomePopular = (items) => {
     const section = findSectionByTitle('지금 주변 인기 맛집');
     if (!section) return;
@@ -364,57 +424,94 @@
     container.innerHTML = '';
 
     items.forEach((place) => {
-      const card = document.createElement('article');
-      card.className = 'min-w-[220px] rounded-2xl border border-slate-100 bg-amber-50 p-4';
-
-      // 카테고리별 이미지 추가
-      const img = document.createElement('img');
-      img.src = getCategoryImage(place.category);
-      img.alt = place.name;
-      img.className = 'w-full h-24 object-cover rounded-xl mb-3';
-      img.onerror = () => { img.style.display = 'none'; }; // 로드 실패 시 숨김
-
-      const header = document.createElement('div');
-      header.className = 'flex items-start justify-between';
-
-      const titleWrap = document.createElement('div');
-      const title = document.createElement('h3');
-      title.className = 'font-semibold';
-      title.textContent = place.name;
-      const meta = document.createElement('p');
-      meta.className = 'text-xs text-slate-500';
-      meta.textContent = `${place.category || '기타'} · ${formatDistance(place.distance_m)}`;
-
-      titleWrap.append(title, meta);
-
-      const rating = document.createElement('span');
-      rating.className = 'rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white';
-      rating.textContent = Number(place.rating || 0).toFixed(1);
-
-      header.append(titleWrap, rating);
-
-      const menu = document.createElement('p');
-      menu.className = 'mt-3 text-sm text-slate-600';
-      menu.textContent = place.highlight || '네이버 추천 맛집';
-
-      const footer = document.createElement('div');
-      footer.className = 'mt-4 flex items-center justify-between';
-
-      const sub = document.createElement('span');
-      sub.className = 'text-xs text-amber-700';
-      sub.textContent = place.note || '바로 방문하기 좋음';
-
-      const action = document.createElement('button');
-      action.className = 'rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-800';
-      action.textContent = '바로 기록';
-      action.addEventListener('click', () => handleQuickRecord(place));
-
-      footer.append(sub, action);
-
-      // 이미지를 카드 맨 앞에 추가
-      card.append(img, header, menu, footer);
+      const card = createPlaceCard(place);
       container.appendChild(card);
     });
+  };
+
+  // ================================
+  // 맛집 카드 추가 (더보기)
+  // ================================
+  const appendPlaceCards = (items) => {
+    const section = findSectionByTitle('지금 주변 인기 맛집');
+    if (!section) return;
+    const container = qs('.mt-5.flex', section);
+    if (!container) return;
+
+    items.forEach((place) => {
+      const card = createPlaceCard(place);
+      container.appendChild(card);
+    });
+
+    // 새로 추가된 카드로 부드럽게 스크롤
+    container.scrollTo({
+      left: container.scrollWidth,
+      behavior: 'smooth'
+    });
+  };
+
+  // ================================
+  // 더보기 기능 - 추가 5개 로드
+  // ================================
+  const loadMorePlaces = async () => {
+    const btn = qs('#load-more-places');
+    if (btn) {
+      btn.textContent = '로딩 중...';
+      btn.disabled = true;
+    }
+
+    try {
+      // 다양한 검색어로 더 많은 결과 가져오기
+      const searchQueries = [
+        '성수동 맛집',
+        '성수 레스토랑',
+        '성수역 맛집',
+        '성수동 카페',
+        '성수 음식점',
+      ];
+      const queryIndex = Math.floor(state.popularOffset / 5) % searchQueries.length;
+      const query = searchQueries[queryIndex];
+
+      // 네이버 API에서 10개 검색 (중복 제거 후 5개 선택)
+      const results = await searchPlaces(query);
+
+      // 중복 제거 (이름 기준)
+      const existingNames = new Set(state.popularPlaces.map(p => p.name));
+      const newPlaces = results.filter(p => !existingNames.has(p.name)).slice(0, 5);
+
+      if (newPlaces.length === 0) {
+        if (btn) btn.textContent = '더 이상 없음';
+        return;
+      }
+
+      // 상태 업데이트
+      state.popularPlaces = [...state.popularPlaces, ...newPlaces];
+      state.popularOffset += 5;
+
+      // 새 카드 추가 렌더링
+      appendPlaceCards(newPlaces);
+
+      if (btn) {
+        btn.textContent = '더보기';
+        btn.disabled = false;
+      }
+    } catch (error) {
+      console.warn('더보기 로드 실패:', error);
+      if (btn) {
+        btn.textContent = '다시 시도';
+        btn.disabled = false;
+      }
+    }
+  };
+
+  // ================================
+  // 더보기 버튼 이벤트 설정
+  // ================================
+  const setupLoadMore = () => {
+    const btn = qs('#load-more-places');
+    if (btn) {
+      btn.addEventListener('click', loadMorePlaces);
+    }
   };
 
   const renderTimeline = (items) => {
@@ -581,21 +678,31 @@
       // 4단계: 인기 장소 표시
       // 방문 기록이 있으면 인기 장소 표시, 없으면 네이버 검색 결과 표시
       if (popularItems.length) {
+        state.popularPlaces = popularItems;
+        state.popularOffset = popularItems.length;
         renderHomePopular(popularItems);
       } else {
-        // 방문 기록이 없으면 네이버 API로 기본 검색
+        // 방문 기록이 없으면 네이버 API로 기본 5개 검색
         const defaultResults = await searchPlaces(defaultSearchQuery);
-        renderHomePopular(defaultResults.slice(0, 4));
+        const initialPlaces = defaultResults.slice(0, 5);
+        state.popularPlaces = initialPlaces;
+        state.popularOffset = 5;
+        renderHomePopular(initialPlaces);
       }
     } catch (error) {
       console.warn('데이터 로딩 실패', error);
       // 오류 발생 시에도 네이버 API로 기본 검색 시도
       try {
         const fallbackResults = await searchPlaces(defaultSearchQuery);
-        renderHomePopular(fallbackResults.slice(0, 4));
+        const initialPlaces = fallbackResults.slice(0, 5);
+        state.popularPlaces = initialPlaces;
+        state.popularOffset = 5;
+        renderHomePopular(initialPlaces);
       } catch (fallbackError) {
         console.warn('네이버 검색도 실패:', fallbackError);
         // 모든 것이 실패하면 빈 상태로 표시
+        state.popularPlaces = [];
+        state.popularOffset = 0;
         renderHomePopular([]);
       }
     }
@@ -607,6 +714,7 @@
     setupModalEvents();           // 모달 이벤트 설정
     setupRecordActions();
     setupRecordFilters();
+    setupLoadMore();              // 더보기 버튼 이벤트 설정
     refreshData();
   };
 
