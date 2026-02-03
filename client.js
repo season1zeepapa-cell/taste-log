@@ -357,12 +357,27 @@
   };
 
   // ================================
+  // 대기 시간 더미 데이터 생성 함수
+  // ================================
+  const getWaitTimeMessage = () => {
+    const messages = [
+      { text: '바로 입장 가능', color: 'text-green-600' },
+      { text: '대기 5분', color: 'text-green-600' },
+      { text: '대기 10분', color: 'text-amber-600' },
+      { text: '대기 15분', color: 'text-amber-600' },
+      { text: '대기 20분', color: 'text-orange-600' },
+      { text: '웨이팅 있음', color: 'text-red-500' },
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  // ================================
   // 맛집 카드 생성 함수 (재사용 가능)
   // ================================
   const createPlaceCard = (place) => {
     const card = document.createElement('article');
-    // 카드 크기 고정: 너비 220px, 높이 300px (캐치테이블 링크 공간 추가)
-    card.className = 'w-[220px] h-[300px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4 flex flex-col';
+    // 카드 크기 고정: 너비 220px, 높이 280px
+    card.className = 'w-[220px] h-[280px] flex-shrink-0 rounded-2xl border border-slate-100 bg-amber-50 p-4 flex flex-col';
 
     // 카테고리별 이미지 추가
     const img = document.createElement('img');
@@ -396,26 +411,11 @@
     addressText.className = 'mt-2 text-sm text-slate-600 break-words line-clamp-2';
     addressText.textContent = place.address || place.roadAddress || '';
 
-    // 캐치테이블 링크 (link가 있고 catchtable URL이면 표시)
-    const linkContainer = document.createElement('div');
-    linkContainer.className = 'mt-2 flex-grow';
-
-    if (place.link && place.link.includes('catchtable')) {
-      const catchLink = document.createElement('a');
-      catchLink.href = place.link;
-      catchLink.target = '_blank';
-      catchLink.className = 'inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 hover:underline';
-      catchLink.innerHTML = '🍽️ 캐치테이블 예약';
-      linkContainer.appendChild(catchLink);
-    } else if (place.link) {
-      // 캐치테이블이 아닌 다른 링크가 있으면 표시
-      const extLink = document.createElement('a');
-      extLink.href = place.link;
-      extLink.target = '_blank';
-      extLink.className = 'inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline';
-      extLink.innerHTML = '🔗 상세보기';
-      linkContainer.appendChild(extLink);
-    }
+    // 대기 시간 표시 (더미 데이터)
+    const waitInfo = getWaitTimeMessage();
+    const waitTime = document.createElement('p');
+    waitTime.className = `mt-2 text-xs font-medium ${waitInfo.color} flex-grow`;
+    waitTime.textContent = `⏱️ ${waitInfo.text}`;
 
     // 푸터: 방문횟수 + 바로 기록 버튼 (하단 고정)
     const footer = document.createElement('div');
@@ -433,7 +433,7 @@
     action.addEventListener('click', () => handleQuickRecord(place));
 
     footer.append(visitCount, action);
-    card.append(img, header, addressText, linkContainer, footer);
+    card.append(img, header, addressText, waitTime, footer);
 
     return card;
   };
