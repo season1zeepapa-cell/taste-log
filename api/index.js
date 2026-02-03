@@ -99,11 +99,12 @@ const buildWhere = (params) => {
     clauses.push(`(place_name ILIKE $${values.length} OR menu ILIKE $${values.length} OR notes ILIKE $${values.length})`);
   }
 
-  // 지역(area) 필터 - DB의 area 컬럼으로 정확히 검색
-  // 예: area=성수동 → area 컬럼이 '성수동'인 기록만 조회
+  // 지역(area) 필터 - DB의 area 컬럼으로 부분 일치 검색
+  // 예: area=성동 → area 컬럼에 '성동'이 포함된 기록 조회
+  // (헤더의 "성동구"와 DB의 "성수동" 모두 매칭 가능)
   if (params.area) {
-    values.push(params.area);
-    clauses.push(`area = $${values.length}`);
+    values.push(`%${params.area}%`);
+    clauses.push(`area ILIKE $${values.length}`);
   }
 
   if (params.from) {
