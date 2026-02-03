@@ -346,18 +346,6 @@
     }
   };
 
-  const renderStats = (summary) => {
-    const statCards = qsa('div.rounded-2xl.border').filter((el) => qs('p', el));
-    statCards.forEach((card) => {
-      const label = qs('p', card)?.textContent.trim();
-      const valueEl = qs('p.mt-2.text-2xl', card);
-      if (!valueEl) return;
-      if (label === '이번 달 기록') valueEl.textContent = `${summary.monthCount}회`;
-      if (label === '평균 별점') valueEl.textContent = summary.avgRating.toFixed(1);
-      if (label === '새 태그') valueEl.textContent = `${summary.tagCount}개`;
-    });
-  };
-
   // ================================
   // 맛집 카드 생성 함수 (재사용 가능)
   // ================================
@@ -652,15 +640,13 @@
   const refreshData = async () => {
     try {
       // 1단계: 여러 API를 동시에 호출 (병렬 처리로 속도 향상)
-      const [summary, timeline, popular] = await Promise.all([
-        api('/api/summary'),           // 통계 요약
+      const [timeline, popular] = await Promise.all([
         api('/api/visits?limit=8'),    // 타임라인용 방문 기록
         api('/api/places/popular?limit=5'), // 인기 장소
       ]);
 
       // 2단계: 상태 업데이트 및 화면 렌더링
       state.visits = timeline.items || [];
-      renderStats(summary);
       renderTimeline(state.visits);
 
       // 3단계: 인기 장소 데이터 가공
